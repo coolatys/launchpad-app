@@ -11,6 +11,9 @@ interface AuthContextType {
   isAdmin: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithMagicLink: (email: string) => Promise<{ error: string | null }>;
+  signUpWithEmail: (email: string, password: string, name?: string) => Promise<{ error: string | null; message?: string }>;
+  signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -23,6 +26,9 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   signInWithGoogle: async () => {},
   signInWithMagicLink: async () => ({ error: null }),
+  signUpWithEmail: async () => ({ error: null }),
+  signInWithEmail: async () => ({ error: null }),
+  resetPassword: async () => ({ error: null }),
   signOut: async () => {},
 });
 
@@ -72,6 +78,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error ? error.message : null };
   };
 
+  const signUpWithEmail = async (email: string, password: string, name?: string) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: name || '' },
+        emailRedirectTo: `${origin}/onboarding`,
+      },
+    });
+    if (error) return { error: error.message };
+    return {
+      error: null,
+      message: data.user?.identities?.length === 0 ? 'User already exists' : 'Registration successful! Check your email for confirmation link.',
+    };
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    return { error: error ? error.message : null };
+  };
+
+  const resetPassword = async (email: string) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${origin}/login?mode=reset`,
+    });
+    return { error: error ? error.message : null };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -89,6 +128,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin,
         signInWithGoogle,
         signInWithMagicLink,
+        signUpWithEmail,
+        signInWithEmail,
+        resetPassword,
         signOut,
       }}
     >

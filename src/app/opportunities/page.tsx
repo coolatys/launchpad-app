@@ -47,19 +47,67 @@ export default function OpportunitiesPage() {
     profileType: 'user' as 'user' | 'friend',
   });
 
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanCount, setScanCount] = useState(0);
+  const [scanFinished, setScanFinished] = useState(false);
+
   const fetchOpportunities = async (filter: 'new' | 'shortlisted' | 'dismissed', profile: 'all' | 'user' | 'friend') => {
     setLoading(true);
     try {
       const res = await fetch(`/api/opportunities?status=${filter}&profile=${profile}`);
       if (!res.ok) throw new Error('Failed to load opportunities');
       const data = await res.json();
-      setOpportunities(data.opportunities || []);
+      
+      // Ensure sorted by fit_score DESC
+      const sorted = (data.opportunities || []).sort((a: Opportunity, b: Opportunity) => {
+        const scoreA = a.fit_score ?? -1;
+        const scoreB = b.fit_score ?? -1;
+        return scoreB - scoreA;
+      });
+
+      setOpportunities(sorted);
     } catch (err: any) {
       setStatusMsg({ type: 'error', message: err.message });
     } finally {
       setLoading(false);
     }
   };
+
+  // Progressive scan polling effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isScanning) {
+      interval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/opportunities/poll?profile=${profileFilter}`);
+          if (res.ok) {
+            const data = await res.json();
+            const sorted = (data.opportunities || []).sort((a: Opportunity, b: Opportunity) => {
+              const scoreA = a.fit_score ?? -1;
+              const scoreB = b.fit_score ?? -1;
+              return scoreB - scoreA;
+            });
+            setOpportunities(sorted);
+            setScanCount(sorted.length);
+          }
+        } catch (e) {
+          console.log('Polling error:', e);
+        }
+      }, 3000);
+
+      // Automatically finish scan after 25 seconds of progressive polling
+      const timeout = setTimeout(() => {
+        setIsScanning(false);
+        setScanFinished(true);
+        setTimeout(() => setScanFinished(false), 6000);
+      }, 25000);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    }
+  }, [isScanning, profileFilter]);
 
   useEffect(() => {
     fetchOpportunities(statusFilter, profileFilter);
@@ -145,23 +193,22 @@ export default function OpportunitiesPage() {
 
   const runAgentCheck = async () => {
     setChecking(true);
+    setIsScanning(true);
+    setScanFinished(false);
     setStatusMsg(null);
     try {
       const res = await fetch(`/api/opportunities/check?profile=${profileFilter}`, {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to run agent scan');
-      const data = await res.json();
       
       setStatusMsg({
         type: 'success',
-        message: `Agent scan started in the background for this profile! Watch your terminal console for live progress. Refresh the page in a few minutes.`,
+        message: `Progressive AI web scan initiated! Matches will populate live below as they are found.`,
       });
-      setTimeout(() => setStatusMsg(null), 8000);
-      
-      fetchOpportunities(statusFilter, profileFilter);
     } catch (err: any) {
       setStatusMsg({ type: 'error', message: err.message });
+      setIsScanning(false);
     } finally {
       setChecking(false);
     }
