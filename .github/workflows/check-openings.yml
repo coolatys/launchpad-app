@@ -1,0 +1,42 @@
+name: Trigger Discovery Agent
+
+on:
+  schedule:
+    # Run every 8 hours (00:00, 08:00, 16:00 UTC)
+    - cron: '0 */8 * * *'
+  workflow_dispatch:
+    # Allows manual trigger of workflow from GitHub UI
+
+jobs:
+  check-openings:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Hit Launchpad Discovery API
+        run: |
+          if [ -z "${{ secrets.APP_URL }}" ]; then
+            echo "Error: APP_URL secret is not configured in GitHub repository settings."
+            exit 1
+          fi
+          if [ -z "${{ secrets.CHECK_SECRET }}" ]; then
+            echo "Error: CHECK_SECRET secret is not configured in GitHub repository settings."
+            exit 1
+          fi
+          
+          echo "Triggering Discovery Agent crawl..."
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.CHECK_SECRET }}" \
+            -H "Content-Length: 0" \
+            -s -o response.json -w "%{http_code}" \
+            "${{ secrets.APP_URL }}/api/check" > status_code.txt
+          
+          HTTP_STATUS=$(cat status_code.txt)
+          echo "HTTP Response Code: $HTTP_STATUS"
+          echo "Response Body:"
+          cat response.json
+          
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Error: API call failed with status code $HTTP_STATUS"
+            exit 1
+          fi
+          echo "Discovery crawl executed successfully."
