@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'new';
-    const profile = searchParams.get('profile') || 'all'; // 'all', 'user', 'friend'
+    const userEmail = searchParams.get('userEmail') || searchParams.get('userId') || 'user';
 
     const { data, error } = await supabaseAdmin
       .from('opportunities')
@@ -36,13 +36,16 @@ export async function GET(request: Request) {
     // Filter out already drafted/applied opportunities
     filteredData = filteredData.filter((opp) => !draftedIds.has(opp.id));
 
-    if (profile !== 'all') {
+    // Filter strictly by user ID or user email prefix in dedupe_key
+    if (userEmail && userEmail !== 'all') {
+      const userKey = userEmail.toLowerCase().trim();
       filteredData = filteredData.filter((opp) => {
-        if (!opp.dedupe_key) return profile === 'user';
-        const prefix = opp.dedupe_key.split(':')[0];
-        if (prefix === 'friend') return profile === 'friend';
-        return profile === 'user';
+        if (!opp.dedupe_key) return false;
+        return opp.dedupe_key.toLowerCase().includes(userKey);
       });
+    } else {
+      // Default to empty array for unauthenticated / new users
+      filteredData = [];
     }
 
     return NextResponse.json({ opportunities: filteredData });

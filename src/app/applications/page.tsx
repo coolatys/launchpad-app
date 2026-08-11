@@ -16,6 +16,8 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { Application } from '@/lib/types';
+import { useAuth } from '@/components/AuthContext';
+import { useRouter } from 'next/navigation';
 
 const STATUS_OPTIONS = [
   { value: 'to_apply', label: 'To Apply' },
@@ -27,26 +29,34 @@ const STATUS_OPTIONS = [
 ];
 
 export default function ApplicationsPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedApps, setExpandedApps] = useState<Set<string>>(new Set());
   const [copiedTextId, setCopiedTextId] = useState<string | null>(null);
   const [savingNotesId, setSavingNotesId] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [profileFilter, setProfileFilter] = useState<'all' | 'user' | 'friend'>('all');
-  const [profileNames, setProfileNames] = useState({ user: 'You', friend: 'Friend' });
 
   // Local state for editing notes
   const [notesLocal, setNotesLocal] = useState<{ [key: string]: string }>({});
 
+  // Auth Redirect Guard
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
+
   const fetchApplications = async () => {
+    if (!user?.email) return;
     try {
-      const res = await fetch('/api/applications');
+      const res = await fetch(`/api/applications?userEmail=${encodeURIComponent(user.email)}`);
       if (!res.ok) throw new Error('Failed to load applications');
       const data = await res.json();
       setApplications(data.applications || []);
       
-      // Initialize notes local state
       const notesMap: { [key: string]: string } = {};
       data.applications?.forEach((app: Application) => {
         notesMap[app.id!] = app.notes || '';
@@ -60,26 +70,10 @@ export default function ApplicationsPage() {
   };
 
   useEffect(() => {
-    fetchApplications();
-  }, []);
-
-  useEffect(() => {
-    async function loadNames() {
-      try {
-        const resUser = await fetch('/api/profile?type=user');
-        const resFriend = await fetch('/api/profile?type=friend');
-        const userJson = await resUser.json();
-        const friendJson = await resFriend.json();
-        setProfileNames({
-          user: userJson.profile?.name || 'You',
-          friend: friendJson.profile?.name || 'Friend',
-        });
-      } catch (err) {
-        console.error('Error fetching names:', err);
-      }
+    if (user) {
+      fetchApplications();
     }
-    loadNames();
-  }, []);
+  }, [user]);
 
   const toggleExpand = (id: string) => {
     setExpandedApps((prev) => {
@@ -225,12 +219,7 @@ export default function ApplicationsPage() {
 
       {/* Applications list */}
       {(() => {
-        const filteredApps = applications.filter((app: any) => {
-          if (profileFilter === 'all') return true;
-          const dedupeKey = app.opportunities?.dedupe_key || '';
-          const owner = dedupeKey.startsWith('friend:') ? 'friend' : 'user';
-          return owner === profileFilter;
-        });
+        const filteredApps = applications;
 
         if (filteredApps.length === 0) {
           return (
@@ -288,15 +277,6 @@ export default function ApplicationsPage() {
                       }`}>
                         {app.kind}
                       </span>
-                      {app.opportunities?.dedupe_key && (
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                          app.opportunities.dedupe_key.startsWith('friend:')
-                            ? 'bg-rose-50 text-rose-700 border border-rose-100'
-                            : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                        }`}>
-                          For: {app.opportunities.dedupe_key.startsWith('friend:') ? profileNames.friend.split(' ')[0] : profileNames.user.split(' ')[0]}
-                        </span>
-                      )}
                       {app.deadline && app.deadline !== 'N/A' && (
                         <span className="text-xs text-slate-400 font-medium flex items-center gap-1">
                           <Clock className="w-3.5 h-3.5" />

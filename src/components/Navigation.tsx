@@ -25,6 +25,8 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
+  const isAuthOrOnboarding = pathname === '/login' || pathname === '/onboarding';
+
   const navigationItems = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Profile', href: '/profile', icon: User },

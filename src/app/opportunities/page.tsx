@@ -18,17 +18,20 @@ import {
   Save,
   X,
 } from 'lucide-react';
+import { useAuth } from '@/components/AuthContext';
+import { useRouter } from 'next/navigation';
 import { Opportunity } from '@/lib/types';
 
 export default function OpportunitiesPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'new' | 'shortlisted' | 'dismissed'>('new');
   const [expandedOpps, setExpandedOpps] = useState<Set<string>>(new Set());
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [profileFilter, setProfileFilter] = useState<'all' | 'user' | 'friend'>('all');
-  const [profileNames, setProfileNames] = useState({ user: 'You', friend: 'Friend' });
 
   // Phase 4 states
   const [tailoringId, setTailoringId] = useState<string | null>(null);
@@ -51,14 +54,21 @@ export default function OpportunitiesPage() {
   const [scanCount, setScanCount] = useState(0);
   const [scanFinished, setScanFinished] = useState(false);
 
-  const fetchOpportunities = async (filter: 'new' | 'shortlisted' | 'dismissed', profile: 'all' | 'user' | 'friend') => {
+  // Auth Redirect Guard
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
+
+  const fetchOpportunities = async (filter: 'new' | 'shortlisted' | 'dismissed') => {
+    if (!user?.email) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/opportunities?status=${filter}&profile=${profile}`);
+      const res = await fetch(`/api/opportunities?status=${filter}&userEmail=${encodeURIComponent(user.email)}`);
       if (!res.ok) throw new Error('Failed to load opportunities');
       const data = await res.json();
       
-      // Ensure sorted by fit_score DESC
       const sorted = (data.opportunities || []).sort((a: Opportunity, b: Opportunity) => {
         const scoreA = a.fit_score ?? -1;
         const scoreB = b.fit_score ?? -1;
@@ -76,10 +86,10 @@ export default function OpportunitiesPage() {
   // Progressive scan polling effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isScanning) {
+    if (isScanning && user?.email) {
       interval = setInterval(async () => {
         try {
-          const res = await fetch(`/api/opportunities/poll?profile=${profileFilter}`);
+          const res = await fetch(`/api/opportunities/poll?userEmail=${encodeURIComponent(user.email!)}`);
           if (res.ok) {
             const data = await res.json();
             const sorted = (data.opportunities || []).sort((a: Opportunity, b: Opportunity) => {
@@ -95,7 +105,6 @@ export default function OpportunitiesPage() {
         }
       }, 3000);
 
-      // Automatically finish scan after 25 seconds of progressive polling
       const timeout = setTimeout(() => {
         setIsScanning(false);
         setScanFinished(true);
@@ -107,29 +116,11 @@ export default function OpportunitiesPage() {
         clearTimeout(timeout);
       };
     }
-  }, [isScanning, profileFilter]);
+  }, [isScanning, user]);
 
   useEffect(() => {
-    fetchOpportunities(statusFilter, profileFilter);
-  }, [statusFilter, profileFilter]);
-
-  useEffect(() => {
-    async function loadNames() {
-      try {
-        const resUser = await fetch('/api/profile?type=user');
-        const resFriend = await fetch('/api/profile?type=friend');
-        const userJson = await resUser.json();
-        const friendJson = await resFriend.json();
-        setProfileNames({
-          user: userJson.profile?.name || 'You',
-          friend: friendJson.profile?.name || 'Friend',
-        });
-      } catch (err) {
-        console.error('Error fetching names:', err);
-      }
-    }
-    loadNames();
-  }, []);
+    fetchOpportunities(statusFilter);
+  }, [statusFilter, user]);
 
   const toggleExpand = (id: string) => {
     setExpandedOpps((prev) => {
@@ -156,7 +147,7 @@ export default function OpportunitiesPage() {
       setStatusMsg({ type: 'success', message: `Opportunity moved to ${newStatus}.` });
       setTimeout(() => setStatusMsg(null), 3000);
       
-      fetchOpportunities(statusFilter, profileFilter);
+      fetchOpportunities(statusFilter);
     } catch (err: any) {
       setStatusMsg({ type: 'error', message: err.message });
     }
@@ -183,7 +174,7 @@ export default function OpportunitiesPage() {
       });
       setTimeout(() => setStatusMsg(null), 6000);
       
-      fetchOpportunities(statusFilter, profileFilter);
+      fetchOpportunities(statusFilter);
     } catch (err: any) {
       setStatusMsg({ type: 'error', message: err.message });
     } finally {
@@ -197,7 +188,7 @@ export default function OpportunitiesPage() {
     setScanFinished(false);
     setStatusMsg(null);
     try {
-      const res = await fetch(`/api/opportunities/check?profile=${profileFilter}`, {
+      const res = await fetch('/api/opportunities/check', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to run agent scan');
@@ -257,7 +248,7 @@ export default function OpportunitiesPage() {
       setShowManualForm(false);
       
       // Refresh listings
-      fetchOpportunities(statusFilter, profileFilter);
+      fetchOpportunities(statusFilter);
     } catch (err: any) {
       setStatusMsg({ type: 'error', message: err.message });
     } finally {
@@ -344,23 +335,7 @@ export default function OpportunitiesPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="profileType" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                Target Candidate <span className="text-rose-500">*</span>
-              </label>
-              <select
-                id="profileType"
-                name="profileType"
-                value={manualForm.profileType}
-                onChange={handleManualFormChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-1 focus:ring-navy outline-none text-xs"
-              >
-                <option value="user">{profileNames.user.split(' ')[0]} (You)</option>
-                <option value="friend">{profileNames.friend.split(' ')[0]}</option>
-              </select>
-            </div>
-
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="kind" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                 Opportunity Type <span className="text-rose-500">*</span>
@@ -587,15 +562,6 @@ export default function OpportunitiesPage() {
                       }`}>
                         {opp.kind}
                       </span>
-                      {opp.dedupe_key && (
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                          opp.dedupe_key.startsWith('friend:')
-                            ? 'bg-rose-50 text-rose-700 border border-rose-100'
-                            : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                        }`}>
-                          For: {opp.dedupe_key.startsWith('friend:') ? profileNames.friend.split(' ')[0] : profileNames.user.split(' ')[0]}
-                        </span>
-                      )}
                       <span className="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded border border-slate-150 capitalize font-medium">
                         Provider: {opp.provider}
                       </span>
@@ -618,7 +584,7 @@ export default function OpportunitiesPage() {
                           Gemini Fit Analysis
                         </p>
                         <ul className="list-disc pl-4 text-xs text-slate-600 space-y-1">
-                          {opp.fit_reasons.split('\n').filter(Boolean).map((reason, idx) => (
+                          {opp.fit_reasons.split('\n').filter(Boolean).map((reason: string, idx: number) => (
                             <li key={idx}>{reason}</li>
                           ))}
                         </ul>
