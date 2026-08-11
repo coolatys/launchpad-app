@@ -25,7 +25,11 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
-  const isAuthOrOnboarding = pathname === '/login' || pathname === '/onboarding';
+  const isUnauthenticated = !user || pathname === '/login' || pathname.startsWith('/admin');
+
+  if (isUnauthenticated) {
+    return <main className="min-h-screen bg-slate-50">{children}</main>;
+  }
 
   const navigationItems = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
