@@ -207,33 +207,7 @@ export default function ApplicationsPage() {
         </p>
       </div>
 
-      {/* Profile Filter Switcher */}
-      <div className="flex items-center bg-slate-100 p-1.5 rounded-xl border border-slate-200 self-start mt-6 text-xs">
-        <button
-          onClick={() => setProfileFilter('all')}
-          className={`px-3 py-1 text-[11px] font-bold rounded-lg transition duration-150 cursor-pointer ${
-            profileFilter === 'all' ? 'bg-white text-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          All Candidates
-        </button>
-        <button
-          onClick={() => setProfileFilter('user')}
-          className={`px-3 py-1 text-[11px] font-bold rounded-lg transition duration-150 cursor-pointer ${
-            profileFilter === 'user' ? 'bg-white text-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          {profileNames.user.split(' ')[0]} (You)
-        </button>
-        <button
-          onClick={() => setProfileFilter('friend')}
-          className={`px-3 py-1 text-[11px] font-bold rounded-lg transition duration-150 cursor-pointer ${
-            profileFilter === 'friend' ? 'bg-white text-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          {profileNames.friend.split(' ')[0]}
-        </button>
-      </div>
+
 
       {/* Alert banner */}
       {statusMsg && (

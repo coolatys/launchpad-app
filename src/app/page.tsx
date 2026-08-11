@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Compass,
   User,
@@ -17,6 +18,7 @@ import {
   ArrowRight,
   RefreshCw,
 } from 'lucide-react';
+import { useAuth } from '@/components/AuthContext';
 
 interface DashboardStats {
   scholarshipsAppliedCount: number;
@@ -43,16 +45,24 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [profileNames, setProfileNames] = useState({ user: 'You', friend: 'Friend' });
-  const [activeProfile, setActiveProfile] = useState<'all' | 'user' | 'friend'>('all');
 
-  const fetchDashboardStats = async (profile: string) => {
+  // Auth Redirect Guard: If not logged in, go straight to /login
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
+
+  const fetchDashboardStats = async () => {
     try {
-      const res = await fetch(`/api/dashboard?profile=${profile}`);
+      const res = await fetch('/api/dashboard');
       if (!res.ok) throw new Error('Failed to load dashboard metrics');
       const data = await res.json();
       setStats(data);
@@ -64,45 +74,27 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    async function loadNames() {
-      try {
-        const resUser = await fetch('/api/profile?type=user');
-        const resFriend = await fetch('/api/profile?type=friend');
-        const userJson = await resUser.json();
-        const friendJson = await resFriend.json();
-        setProfileNames({
-          user: userJson.profile?.name || 'You',
-          friend: friendJson.profile?.name || 'Friend',
-        });
-      } catch (err) {
-        console.error('Error fetching names:', err);
-      }
+    if (user) {
+      fetchDashboardStats();
     }
-    loadNames();
-  }, []);
-
-  useEffect(() => {
-    fetchDashboardStats(activeProfile);
-  }, [activeProfile]);
+  }, [user]);
 
   const triggerScan = async () => {
     setScanning(true);
     setStatusMsg(null);
     try {
-      const res = await fetch(`/api/opportunities/check?profile=${activeProfile}`, {
+      const res = await fetch('/api/opportunities/check', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to run scanning agent');
-      const data = await res.json();
       
       setStatusMsg({
         type: 'success',
-        message: `Scan started in the background! Watch your terminal console for live progress. Refresh the page in a few minutes to see new matches.`,
+        message: 'Scan started in the background for your profile! Refresh in a few minutes to see new matches.',
       });
       setTimeout(() => setStatusMsg(null), 8000);
       
-      // Reload stats
-      fetchDashboardStats(activeProfile);
+      fetchDashboardStats();
     } catch (err: any) {
       setStatusMsg({ type: 'error', message: err.message || 'Error running discovery agent.' });
     } finally {
@@ -110,13 +102,17 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) {
+  if (authLoading || (loading && user)) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 text-navy animate-spin" />
         <span className="ml-3 text-slate-600 font-medium">Assembling dashboard metrics...</span>
       </div>
     );
+  }
+
+  if (!user) {
+    return null; // Will redirect via useEffect
   }
 
   const breakdown = stats?.statusBreakdown || {
@@ -128,7 +124,6 @@ export default function Dashboard() {
     rejected: 0,
   };
 
-  // Find max value in breakdown to scale graph bars
   const maxBreakdownCount = Math.max(...Object.values(breakdown), 1);
 
   return (
@@ -138,7 +133,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold text-navy">Launchpad Control Center</h1>
           <p className="text-slate-500 mt-1">
-            Track your job application pipeline, scholarship updates, and matches.
+            Welcome, <span className="font-semibold text-navy">{user.user_metadata?.full_name || user.email?.split('@')[0]}</span>! Track your candidate application pipeline and matches.
           </p>
         </div>
 
@@ -161,34 +156,6 @@ export default function Dashboard() {
             )}
           </button>
         </div>
-      </div>
-
-      {/* Profile Filter Selector */}
-      <div className="flex items-center bg-slate-100 p-1.5 rounded-xl border border-slate-200 self-start">
-        <button
-          onClick={() => setActiveProfile('all')}
-          className={`px-4 py-1.5 text-xs font-bold rounded-lg transition duration-150 cursor-pointer ${
-            activeProfile === 'all' ? 'bg-white text-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          All Candidates
-        </button>
-        <button
-          onClick={() => setActiveProfile('user')}
-          className={`px-4 py-1.5 text-xs font-bold rounded-lg transition duration-150 cursor-pointer ${
-            activeProfile === 'user' ? 'bg-white text-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          {profileNames.user.split(' ')[0]} (You)
-        </button>
-        <button
-          onClick={() => setActiveProfile('friend')}
-          className={`px-4 py-1.5 text-xs font-bold rounded-lg transition duration-150 cursor-pointer ${
-            activeProfile === 'friend' ? 'bg-white text-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          {profileNames.friend.split(' ')[0]}
-        </button>
       </div>
 
       {/* Notifications banner */}
