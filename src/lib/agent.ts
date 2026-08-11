@@ -54,14 +54,18 @@ export async function runDiscoveryAgent(userId?: string): Promise<AgentRunResult
 
   try {
     // 1. Fetch the master candidate profile
-    let profileQuery = supabaseAdmin.from('profile').select('*');
-    if (userId) {
-      profileQuery = profileQuery.eq('id', userId).maybeSingle();
-    } else {
-      profileQuery = profileQuery.limit(1).maybeSingle();
-    }
+    let profile: any;
+    let profileError: any;
     
-    const { data: profile, error: profileError } = await profileQuery;
+    if (userId) {
+      const res = await supabaseAdmin.from('profile').select('*').eq('id', userId).maybeSingle();
+      profile = res.data;
+      profileError = res.error;
+    } else {
+      const res = await supabaseAdmin.from('profile').select('*').limit(1).maybeSingle();
+      profile = res.data;
+      profileError = res.error;
+    }
 
     if (profileError || !profile) {
       console.error('Failed to load profile. Cannot run fit scoring without candidate profile.', profileError);
