@@ -44,7 +44,7 @@ export default function ProfilePage() {
     setLoading(true);
     setStatus(null);
     try {
-      const res = await fetch(`/api/profile?user_id=${user.id}&userEmail=${encodeURIComponent(user.email || '')}`);
+      const res = await fetch(`/api/profile?user_id=${user.id}`);
       if (!res.ok) throw new Error('Failed to load profile');
       const data = await res.json();
       if (data.profile) {
@@ -88,6 +88,7 @@ export default function ProfilePage() {
 
     const payload = {
       ...profile,
+      user_id: user?.id,
       job_queries: profile.job_queries.split('\n').map(q => q.trim()).filter(Boolean),
       scholarship_queries: profile.scholarship_queries.split('\n').map(q => q.trim()).filter(Boolean),
     };

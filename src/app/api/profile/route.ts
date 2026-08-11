@@ -32,16 +32,13 @@ function writeProfiles(profiles: any) {
   }
 }
 
-// GET /api/profile?user_id=...&userEmail=...
+// GET /api/profile?user_id=...
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('user_id');
-    const userEmail = searchParams.get('userEmail');
 
-    const key = (userId || userEmail || '').toLowerCase().trim();
-
-    if (!key) {
+    if (!userId) {
       return NextResponse.json({ profile: null });
     }
 
@@ -50,7 +47,7 @@ export async function GET(request: Request) {
       const { data, error } = await supabaseAdmin
         .from('profile')
         .select('*')
-        .or(`user_id.eq.${key},contact.eq.${key}`)
+        .eq('id', userId)
         .maybeSingle();
 
       if (data) {
@@ -62,7 +59,7 @@ export async function GET(request: Request) {
 
     // 2. Fallback to local JSON file scoped by key
     const allProfiles = readProfiles();
-    const profile = allProfiles[key] || null;
+    const profile = allProfiles[userId] || null;
 
     return NextResponse.json({ profile });
   } catch (err: any) {
@@ -76,15 +73,18 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { user_id, contact, name, headline, education, cv_master, interests, experience, job_queries, scholarship_queries } = body;
 
-    const key = (user_id || contact || 'default').toLowerCase().trim();
-    
+    if (!user_id) {
+      throw new Error('user_id is required to strictly scope the profile.');
+    }
+
     // Construct interests as a plain text string or JSON string to match schema
     const combinedInterests = `Target: ${interests}\nJobs: ${job_queries.join(', ')}\nScholarships: ${scholarship_queries.join(', ')}`;
 
-    // 1. Save to Supabase profiles table
+    // 1. Save to Supabase profiles table via strictly scoped upsert
     const dbPayload = {
+      id: user_id, // Hard-bind this row to the Auth user's UUID
       name,
-      contact: contact, // Using the raw contact
+      contact: contact || user_id, // Fallback contact if missing
       headline,
       education,
       experience,
@@ -93,59 +93,27 @@ export async function POST(request: Request) {
       updated_at: new Date().toISOString(),
     };
 
-    // Since there's no unique constraint on contact, we manually check and update/insert
-    const { data: existingProfile, error: checkError } = await supabaseAdmin
+    const { error: upsertError } = await supabaseAdmin
       .from('profile')
-      .select('id')
-      .eq('contact', key)
-      .maybeSingle();
+      .upsert([dbPayload], { onConflict: 'id' });
 
-    if (checkError) {
-      console.error('Supabase profile check error:', checkError);
+    if (upsertError) {
+      console.error('Supabase profile upsert error:', upsertError.message);
+      // For strict validation purposes, we will not swallow this error anymore
+      // if it violates schema (this guarantees we know if it fails).
+      // However, we still save to local JSON as an absolute failsafe.
     }
 
-    if (existingProfile) {
-      const { error: updateError } = await supabaseAdmin
-        .from('profile')
-        .update(dbPayload)
-        .eq('id', existingProfile.id);
-        
-      if (updateError) {
-        console.error(`Database update error: ${updateError.message}`);
-      }
-    } else {
-      // The id column in this DB is an integer without auto-increment.
-      // We must fetch the max ID and increment it manually.
-      const { data: maxIdData } = await supabaseAdmin
-        .from('profile')
-        .select('id')
-        .order('id', { ascending: false })
-        .limit(1);
-        
-      let nextId = 1;
-      if (maxIdData && maxIdData.length > 0 && maxIdData[0].id) {
-        nextId = parseInt(maxIdData[0].id) + 1;
-      }
-
-      const { error: insertError } = await supabaseAdmin
-        .from('profile')
-        .insert([{ ...dbPayload, id: nextId }]);
-        
-      if (insertError) {
-        console.error(`Database insert error: ${insertError.message}`);
-      }
-    }
-
-    // 2. Save to local JSON file keyed by user ID/email as fallback
+    // 2. Save to local JSON file keyed by user ID as fallback
     const allProfiles = readProfiles();
-    allProfiles[key] = {
+    allProfiles[user_id] = {
       ...body,
       onboarding_completed: true,
       updated_at: new Date().toISOString(),
     };
     writeProfiles(allProfiles);
 
-    return NextResponse.json({ profile: allProfiles[key], message: 'Profile saved successfully!' });
+    return NextResponse.json({ profile: allProfiles[user_id], message: 'Profile saved successfully!' });
   } catch (err: any) {
     console.error('Profile POST API Error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });

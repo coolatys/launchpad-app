@@ -14,10 +14,14 @@ export async function POST(request: Request) {
     // 1. Fetch user's profile from Supabase profiles table
     let profile: any = null;
     try {
+      if (!userId || userId === 'default_user') {
+        throw new Error('Valid user_id required for scan');
+      }
+
       const { data } = await supabaseAdmin
         .from('profile')
         .select('*')
-        .or(`user_id.eq.${userId},contact.eq.${userId}`)
+        .eq('id', userId)
         .maybeSingle();
       profile = data;
     } catch (e) {

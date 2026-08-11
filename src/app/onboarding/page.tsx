@@ -21,7 +21,19 @@ import { useAuth } from '@/components/AuthContext';
 
 export default function OnboardingWizardPage() {
   const router = useRouter();
-  const { user, setHasCompletedProfile } = useAuth();
+  const { user, loading: authLoading, hasCompletedProfile, setHasCompletedProfile } = useAuth();
+
+  // Guard: if user is not logged in or already completed onboarding, redirect them
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        router.push('/login');
+      } else if (hasCompletedProfile) {
+        // Prevent completed users from re-running onboarding and overwriting their profile
+        router.push('/opportunities');
+      }
+    }
+  }, [user, authLoading, hasCompletedProfile, router]);
 
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [loading, setLoading] = useState(false);
@@ -149,7 +161,7 @@ export default function OnboardingWizardPage() {
       experience: formData.aboutYourself.trim(),
       job_queries: formData.job_queries.split('\n').map((q) => q.trim()).filter(Boolean),
       scholarship_queries: formData.scholarship_queries.split('\n').map((q) => q.trim()).filter(Boolean),
-      user_id: user?.id || user?.email,
+      user_id: user?.id,
       onboarding_completed: true,
     };
 
@@ -166,7 +178,7 @@ export default function OnboardingWizardPage() {
       await fetch('/api/opportunities/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user?.id || user?.email }),
+        body: JSON.stringify({ user_id: user?.id }),
       });
 
       // Crucial Fix: Tell AuthContext the profile is complete BEFORE navigating!

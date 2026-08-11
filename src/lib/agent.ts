@@ -44,7 +44,7 @@ export interface AgentRunResult {
 /**
  * Main Agent Function to run discovery, deduplicate, score with Gemini, and save to Supabase.
  */
-export async function runDiscoveryAgent(): Promise<AgentRunResult> {
+export async function runDiscoveryAgent(userId?: string): Promise<AgentRunResult> {
   const result: AgentRunResult = {
     totalChecked: 0,
     newDiscovered: 0,
@@ -54,11 +54,14 @@ export async function runDiscoveryAgent(): Promise<AgentRunResult> {
 
   try {
     // 1. Fetch the master candidate profile
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profile')
-      .select('*')
-      .eq('id', 1)
-      .single();
+    let profileQuery = supabaseAdmin.from('profile').select('*');
+    if (userId) {
+      profileQuery = profileQuery.eq('id', userId).maybeSingle();
+    } else {
+      profileQuery = profileQuery.limit(1).maybeSingle();
+    }
+    
+    const { data: profile, error: profileError } = await profileQuery;
 
     if (profileError || !profile) {
       console.error('Failed to load profile. Cannot run fit scoring without candidate profile.', profileError);

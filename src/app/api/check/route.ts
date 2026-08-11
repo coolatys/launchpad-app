@@ -26,13 +26,17 @@ export async function POST(request: Request) {
     const result = await runDiscoveryAgent();
 
     // 3. Compile digest if high-fit matches (score >= 65) exist
+    // 3. Compile digest if high-fit matches (score >= 65) exist
     if (result.highFitOpportunities.length > 0) {
-      // Load candidate profile contact details for recipient address
-      const { data: profile } = await supabaseAdmin
+      // NOTE: For a multi-tenant cron job, this should ideally loop over all users
+      // and run discovery agent per user, sending tailored emails.
+      // For now, we'll fetch the first active profile or loop profiles.
+      const { data: profiles } = await supabaseAdmin
         .from('profile')
         .select('name, contact')
-        .eq('id', 1)
-        .single();
+        .limit(1);
+      
+      const profile = profiles?.[0];
 
       let recipientEmail = 'your.email@example.com';
       if (profile && profile.contact) {
@@ -40,6 +44,8 @@ export async function POST(request: Request) {
         const emailMatch = profile.contact.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
         if (emailMatch) {
           recipientEmail = emailMatch[1];
+        } else {
+          recipientEmail = profile.contact;
         }
       }
 
