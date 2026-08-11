@@ -194,8 +194,13 @@ export default function OpportunitiesPage() {
     try {
       const res = await fetch('/api/opportunities/check', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user?.id }),
       });
-      if (!res.ok) throw new Error('Failed to run agent scan');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || 'Failed to run agent scan');
+      }
       
       setStatusMsg({
         type: 'success',

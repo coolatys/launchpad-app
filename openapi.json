@@ -1,0 +1,1571 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "",
+    "title": "standard public schema",
+    "version": "14.15"
+  },
+  "host": "quecxpbjvbpvxdcrpjtj.supabase.co:443",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json",
+    "application/vnd.pgrst.object+json;nulls=stripped",
+    "application/vnd.pgrst.object+json",
+    "text/csv"
+  ],
+  "produces": [
+    "application/json",
+    "application/vnd.pgrst.object+json;nulls=stripped",
+    "application/vnd.pgrst.object+json",
+    "text/csv"
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "produces": [
+          "application/openapi+json",
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "summary": "OpenAPI description (this document)",
+        "tags": [
+          "Introspection"
+        ]
+      }
+    },
+    "/opportunities": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.org"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.location"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.url"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.description"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.deadline"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.provider"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.fit_score"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.fit_reasons"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.discovered_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.dedupe_key"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.status"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/opportunities"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "opportunities"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.opportunities"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "opportunities"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.org"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.location"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.url"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.description"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.deadline"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.provider"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.fit_score"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.fit_reasons"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.discovered_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.dedupe_key"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.status"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "opportunities"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.org"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.location"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.url"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.description"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.deadline"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.provider"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.fit_score"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.fit_reasons"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.discovered_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.dedupe_key"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.opportunities.status"
+          },
+          {
+            "$ref": "#/parameters/body.opportunities"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "opportunities"
+        ]
+      }
+    },
+    "/profile": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.profile.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.contact"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.headline"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.education"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.certifications"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.skills"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.experience"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.project"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.interests"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.cv_master"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.onboarding_completed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/profile"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "profile"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.profile"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "profile"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.profile.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.contact"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.headline"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.education"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.certifications"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.skills"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.experience"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.project"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.interests"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.cv_master"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.onboarding_completed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "profile"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.profile.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.contact"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.headline"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.education"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.certifications"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.skills"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.experience"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.project"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.interests"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.cv_master"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.onboarding_completed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profile.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.profile"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "profile"
+        ]
+      }
+    },
+    "/applications": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.applications.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.opportunity_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.org"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.url"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.deadline"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.tailored_summary"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.tailored_bullets"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.tailored_letter"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.notes"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/applications"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "applications"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.applications"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "applications"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.applications.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.opportunity_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.org"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.url"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.deadline"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.tailored_summary"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.tailored_bullets"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.tailored_letter"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.notes"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "applications"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.applications.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.opportunity_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.org"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.url"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.deadline"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.tailored_summary"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.tailored_bullets"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.tailored_letter"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.notes"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.applications.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.applications"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "applications"
+        ]
+      }
+    },
+    "/sources": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.sources.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.provider"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.query"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.location"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.active"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/sources"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "sources"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.sources"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "sources"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.sources.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.provider"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.query"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.location"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.active"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.created_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "sources"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.sources.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.provider"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.query"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.location"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.active"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sources.created_at"
+          },
+          {
+            "$ref": "#/parameters/body.sources"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "sources"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "opportunities": {
+      "required": [
+        "id",
+        "kind",
+        "title",
+        "org",
+        "url",
+        "provider",
+        "dedupe_key",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "kind": {
+          "format": "text",
+          "type": "string"
+        },
+        "title": {
+          "format": "text",
+          "type": "string"
+        },
+        "org": {
+          "format": "text",
+          "type": "string"
+        },
+        "location": {
+          "format": "text",
+          "type": "string"
+        },
+        "url": {
+          "format": "text",
+          "type": "string"
+        },
+        "description": {
+          "format": "text",
+          "type": "string"
+        },
+        "deadline": {
+          "format": "text",
+          "type": "string"
+        },
+        "provider": {
+          "format": "text",
+          "type": "string"
+        },
+        "fit_score": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "fit_reasons": {
+          "format": "text",
+          "type": "string"
+        },
+        "discovered_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "dedupe_key": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "new",
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "profile": {
+      "required": [
+        "id",
+        "name",
+        "contact"
+      ],
+      "properties": {
+        "id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "name": {
+          "format": "text",
+          "type": "string"
+        },
+        "contact": {
+          "format": "text",
+          "type": "string"
+        },
+        "headline": {
+          "format": "text",
+          "type": "string"
+        },
+        "education": {
+          "format": "text",
+          "type": "string"
+        },
+        "certifications": {
+          "format": "text",
+          "type": "string"
+        },
+        "skills": {
+          "format": "text",
+          "type": "string"
+        },
+        "experience": {
+          "format": "text",
+          "type": "string"
+        },
+        "project": {
+          "format": "text",
+          "type": "string"
+        },
+        "interests": {
+          "format": "text",
+          "type": "string"
+        },
+        "cv_master": {
+          "format": "text",
+          "type": "string"
+        },
+        "onboarding_completed_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "applications": {
+      "required": [
+        "id",
+        "title",
+        "org",
+        "kind",
+        "url",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "opportunity_id": {
+          "description": "Note:\nThis is a Foreign Key to `opportunities.id`.<fk table='opportunities' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "title": {
+          "format": "text",
+          "type": "string"
+        },
+        "org": {
+          "format": "text",
+          "type": "string"
+        },
+        "kind": {
+          "format": "text",
+          "type": "string"
+        },
+        "url": {
+          "format": "text",
+          "type": "string"
+        },
+        "deadline": {
+          "format": "text",
+          "type": "string"
+        },
+        "tailored_summary": {
+          "format": "text",
+          "type": "string"
+        },
+        "tailored_bullets": {
+          "format": "text",
+          "type": "string"
+        },
+        "tailored_letter": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "to_apply",
+          "format": "text",
+          "type": "string"
+        },
+        "notes": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "sources": {
+      "required": [
+        "id",
+        "kind",
+        "provider",
+        "query"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "kind": {
+          "format": "text",
+          "type": "string"
+        },
+        "provider": {
+          "format": "text",
+          "type": "string"
+        },
+        "query": {
+          "format": "text",
+          "type": "string"
+        },
+        "location": {
+          "format": "text",
+          "type": "string"
+        },
+        "active": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "parameters": {
+    "preferParams": {
+      "name": "Prefer",
+      "description": "Preference",
+      "required": false,
+      "in": "header",
+      "type": "string"
+    },
+    "preferReturn": {
+      "name": "Prefer",
+      "description": "Preference",
+      "required": false,
+      "enum": [
+        "return=representation",
+        "return=minimal",
+        "return=none"
+      ],
+      "in": "header",
+      "type": "string"
+    },
+    "preferCount": {
+      "name": "Prefer",
+      "description": "Preference",
+      "required": false,
+      "enum": [
+        "count=none"
+      ],
+      "in": "header",
+      "type": "string"
+    },
+    "preferPost": {
+      "name": "Prefer",
+      "description": "Preference",
+      "required": false,
+      "enum": [
+        "return=representation",
+        "return=minimal",
+        "return=none",
+        "resolution=ignore-duplicates",
+        "resolution=merge-duplicates"
+      ],
+      "in": "header",
+      "type": "string"
+    },
+    "select": {
+      "name": "select",
+      "description": "Filtering Columns",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "on_conflict": {
+      "name": "on_conflict",
+      "description": "On Conflict",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "order": {
+      "name": "order",
+      "description": "Ordering",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "range": {
+      "name": "Range",
+      "description": "Limiting and Pagination",
+      "required": false,
+      "in": "header",
+      "type": "string"
+    },
+    "rangeUnit": {
+      "name": "Range-Unit",
+      "description": "Limiting and Pagination",
+      "required": false,
+      "default": "items",
+      "in": "header",
+      "type": "string"
+    },
+    "offset": {
+      "name": "offset",
+      "description": "Limiting and Pagination",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "limit": {
+      "name": "limit",
+      "description": "Limiting and Pagination",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.opportunities": {
+      "name": "opportunities",
+      "description": "opportunities",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/opportunities"
+      }
+    },
+    "rowFilter.opportunities.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.opportunities.kind": {
+      "name": "kind",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.opportunities.title": {
+      "name": "title",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.opportunities.org": {
+      "name": "org",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.opportunities.location": {
+      "name": "location",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.opportunities.url": {
+      "name": "url",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.opportunities.description": {
+      "name": "description",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.opportunities.deadline": {
+      "name": "deadline",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.opportunities.provider": {
+      "name": "provider",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.opportunities.fit_score": {
+      "name": "fit_score",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.opportunities.fit_reasons": {
+      "name": "fit_reasons",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.opportunities.discovered_at": {
+      "name": "discovered_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.opportunities.dedupe_key": {
+      "name": "dedupe_key",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.opportunities.status": {
+      "name": "status",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.profile": {
+      "name": "profile",
+      "description": "profile",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/profile"
+      }
+    },
+    "rowFilter.profile.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profile.name": {
+      "name": "name",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profile.contact": {
+      "name": "contact",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profile.headline": {
+      "name": "headline",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profile.education": {
+      "name": "education",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profile.certifications": {
+      "name": "certifications",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profile.skills": {
+      "name": "skills",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profile.experience": {
+      "name": "experience",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profile.project": {
+      "name": "project",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profile.interests": {
+      "name": "interests",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profile.cv_master": {
+      "name": "cv_master",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profile.onboarding_completed_at": {
+      "name": "onboarding_completed_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profile.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profile.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.applications": {
+      "name": "applications",
+      "description": "applications",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/applications"
+      }
+    },
+    "rowFilter.applications.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.applications.opportunity_id": {
+      "name": "opportunity_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.applications.title": {
+      "name": "title",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.applications.org": {
+      "name": "org",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.applications.kind": {
+      "name": "kind",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.applications.url": {
+      "name": "url",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.applications.deadline": {
+      "name": "deadline",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.applications.tailored_summary": {
+      "name": "tailored_summary",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.applications.tailored_bullets": {
+      "name": "tailored_bullets",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.applications.tailored_letter": {
+      "name": "tailored_letter",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.applications.status": {
+      "name": "status",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.applications.notes": {
+      "name": "notes",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.applications.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.applications.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.sources": {
+      "name": "sources",
+      "description": "sources",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/sources"
+      }
+    },
+    "rowFilter.sources.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.sources.kind": {
+      "name": "kind",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.sources.provider": {
+      "name": "provider",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.sources.query": {
+      "name": "query",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.sources.location": {
+      "name": "location",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.sources.active": {
+      "name": "active",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.sources.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    }
+  },
+  "externalDocs": {
+    "description": "PostgREST Documentation",
+    "url": "https://postgrest.org/en/v14/references/api.html"
+  }
+}

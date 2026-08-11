@@ -35,6 +35,8 @@ interface StatsData {
   totalOpportunities: number;
   totalApplications: number;
   totalFeedback: number;
+  totalSerpApiCalls: number;
+  serpApiMonth: string;
 }
 
 export default function StandaloneAdminPage() {
@@ -319,6 +321,20 @@ export default function StandaloneAdminPage() {
               <div>
                 <p className="text-xs font-semibold text-slate-500">Feedback Reports</p>
                 <p className="text-2xl font-bold text-navy">{stats?.totalFeedback || 0}</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className={`p-3 rounded-xl ${
+                (stats?.totalSerpApiCalls || 0) >= 245 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
+              }`}>
+                <Search className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-500">SerpApi Calls ({stats?.serpApiMonth})</p>
+                <p className={`text-2xl font-bold ${(stats?.totalSerpApiCalls || 0) >= 245 ? 'text-rose-600' : 'text-navy'}`}>
+                  {stats?.totalSerpApiCalls || 0} <span className="text-sm font-normal text-slate-500">/ 250</span>
+                </p>
               </div>
             </div>
           </div>

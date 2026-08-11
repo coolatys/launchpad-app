@@ -27,15 +27,21 @@ export async function GET() {
     let totalProfiles = 0;
     let totalOpportunities = 0;
     let totalApplications = 0;
+    let totalSerpApiCalls = 0;
+    let serpApiMonth = 'Unknown';
 
     try {
       const { count: profileCount } = await supabaseAdmin.from('profile').select('*', { count: 'exact', head: true });
       const { count: oppCount } = await supabaseAdmin.from('opportunities').select('*', { count: 'exact', head: true });
       const { count: appCount } = await supabaseAdmin.from('applications').select('*', { count: 'exact', head: true });
+      
+      const { data: usageData } = await supabaseAdmin.from('api_usage_tracking').select('*').eq('id', 1).maybeSingle();
 
       totalProfiles = profileCount || 0;
       totalOpportunities = oppCount || 0;
       totalApplications = appCount || 0;
+      totalSerpApiCalls = usageData?.call_count || 0;
+      serpApiMonth = usageData?.current_month || 'Unknown';
     } catch (e) {
       console.log('Error fetching admin counts:', e);
     }
@@ -46,6 +52,8 @@ export async function GET() {
         totalOpportunities,
         totalApplications,
         totalFeedback: feedback.length,
+        totalSerpApiCalls,
+        serpApiMonth,
       },
       feedback,
     });
