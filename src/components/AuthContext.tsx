@@ -10,6 +10,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   hasCompletedProfile: boolean;
+  setHasCompletedProfile: React.Dispatch<React.SetStateAction<boolean>>;
   signInWithGoogle: () => Promise<void>;
   signInWithMagicLink: (email: string) => Promise<{ error: string | null }>;
   signUpWithEmail: (email: string, password: string, name?: string) => Promise<{ error: string | null; message?: string }>;
@@ -26,6 +27,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   isAdmin: false,
   hasCompletedProfile: false,
+  setHasCompletedProfile: () => {},
   signInWithGoogle: async () => {},
   signInWithMagicLink: async () => ({ error: null }),
   signUpWithEmail: async () => ({ error: null }),
@@ -148,6 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         isAdmin,
         hasCompletedProfile,
+        setHasCompletedProfile,
         signInWithGoogle,
         signInWithMagicLink,
         signUpWithEmail,

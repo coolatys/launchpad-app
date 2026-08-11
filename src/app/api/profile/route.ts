@@ -73,33 +73,38 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { user_id, contact, name, headline, education, cv_master, interests, experience, job_queries, scholarship_queries, onboarding_completed } = body;
+    const { user_id, contact, name, headline, education, cv_master, interests, experience, job_queries, scholarship_queries } = body;
 
     const key = (user_id || contact || 'default').toLowerCase().trim();
 
     // 1. Save to Supabase profiles table
-    try {
-      await supabaseAdmin.from('profiles').upsert([
-        {
-          user_id: key,
-          name,
-          contact,
-          headline,
-          education,
-          cv_master,
-          interests,
-          experience,
-          job_queries,
-          scholarship_queries,
-          onboarding_completed: true,
-          updated_at: new Date().toISOString(),
-        },
-      ]);
-    } catch (e) {
-      console.log('Supabase profile upsert fallback:', e);
+    const dbPayload = {
+      user_id: key,
+      full_name: name,
+      contact: contact,
+      cv_text: cv_master,
+      about_me: experience,
+      interests: {
+        raw: interests,
+        job_queries,
+        scholarship_queries
+      },
+      cv_parsed_data: {
+        headline,
+        education
+      },
+      onboarding_completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: dbError } = await supabaseAdmin.from('profiles').upsert([dbPayload], { onConflict: 'user_id' });
+    
+    if (dbError) {
+      console.error('Supabase profile upsert error:', dbError);
+      throw new Error(`Database error: ${dbError.message}`);
     }
 
-    // 2. Save to local JSON file keyed by user ID/email
+    // 2. Save to local JSON file keyed by user ID/email as fallback
     const allProfiles = readProfiles();
     allProfiles[key] = {
       ...body,
@@ -110,6 +115,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ profile: allProfiles[key], message: 'Profile saved successfully!' });
   } catch (err: any) {
+    console.error('Profile POST API Error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

@@ -21,7 +21,7 @@ import { useAuth } from '@/components/AuthContext';
 
 export default function OnboardingWizardPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, setHasCompletedProfile } = useAuth();
 
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [loading, setLoading] = useState(false);
@@ -168,6 +168,10 @@ export default function OnboardingWizardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user?.id || user?.email }),
       });
+
+      // Crucial Fix: Tell AuthContext the profile is complete BEFORE navigating!
+      // This prevents the route guard on /opportunities from bouncing us back to Step 1.
+      setHasCompletedProfile(true);
 
       // Redirect to fresh opportunities page
       router.push('/opportunities?scanning=true');
