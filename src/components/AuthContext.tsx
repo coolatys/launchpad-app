@@ -48,10 +48,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     try {
-      const res = await fetch(`/api/profile?user_id=${currentUser.id}&userEmail=${encodeURIComponent(currentUser.email || '')}`);
+      const res = await fetch(`/api/profile?user_id=${currentUser.id}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.profile && (data.profile.onboarding_completed || data.profile.cv_master)) {
+        if (data.profile && data.profile.onboarding_completed_at) {
           setHasCompletedProfile(true);
           return;
         }

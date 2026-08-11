@@ -172,7 +172,10 @@ export default function OnboardingWizardPage() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error('Failed to save candidate profile.');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.error || 'Failed to save candidate profile. Database rejected the payload.');
+      }
 
       // Kick off fresh opportunity search scan for user
       await fetch('/api/opportunities/check', {
