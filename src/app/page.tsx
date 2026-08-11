@@ -64,8 +64,9 @@ export default function Dashboard() {
   }, [user, authLoading, hasCompletedProfile, router]);
 
   const fetchDashboardStats = async () => {
+    if (!user?.email) return;
     try {
-      const res = await fetch('/api/dashboard');
+      const res = await fetch(`/api/dashboard?userEmail=${encodeURIComponent(user.email)}`);
       if (!res.ok) throw new Error('Failed to load dashboard metrics');
       const data = await res.json();
       setStats(data);

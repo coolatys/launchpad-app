@@ -6,9 +6,16 @@ import path from 'path';
 
 const PROFILES_PATH = path.join(process.cwd(), 'agent', 'profiles.json');
 
-// GET /api/applications - Get all active applications in pipeline
-export async function GET() {
+// GET /api/applications - Get applications in pipeline for specific authenticated user
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const userEmail = searchParams.get('userEmail') || searchParams.get('user_id') || searchParams.get('userId') || '';
+
+    if (!userEmail) {
+      return NextResponse.json({ applications: [] });
+    }
+
     const { data, error } = await supabaseAdmin
       .from('applications')
       .select('*, opportunities(dedupe_key)')
@@ -18,7 +25,14 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ applications: data });
+    const userKey = userEmail.toLowerCase().trim();
+    const userApps = (data || []).filter((app) => {
+      if (app.user_id && app.user_id.toLowerCase().trim() === userKey) return true;
+      const dedupeKey = app.opportunities?.dedupe_key || '';
+      return dedupeKey.toLowerCase().includes(userKey);
+    });
+
+    return NextResponse.json({ applications: userApps });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

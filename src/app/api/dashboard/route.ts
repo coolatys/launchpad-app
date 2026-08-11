@@ -4,9 +4,21 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const profileFilter = searchParams.get('profile') || 'all'; // 'all', 'user', 'friend'
+    const userEmail = searchParams.get('userEmail') || searchParams.get('user_id') || searchParams.get('userId') || '';
 
-    // Fetch all opportunities to perform client-side filtering and mapping
+    if (!userEmail) {
+      return NextResponse.json({
+        scholarshipsAppliedCount: 0,
+        jobsAppliedCount: 0,
+        newMatchesCount: 0,
+        statusBreakdown: { to_apply: 0, drafted: 0, submitted: 0, interview: 0, offer: 0, rejected: 0 },
+        upcomingDeadlines: [],
+      });
+    }
+
+    const userKey = userEmail.toLowerCase().trim();
+
+    // Fetch all opportunities
     const { data: opportunities, error: oppsError } = await supabaseAdmin
       .from('opportunities')
       .select('*');
@@ -20,31 +32,22 @@ export async function GET(request: Request) {
 
     if (appsError) throw new Error(appsError.message);
 
-    // Build opportunity map for quick lookup
+    // Filter opportunities strictly for this user
+    const filteredOpps = (opportunities || []).filter((opp) => {
+      if (!opp.dedupe_key) return false;
+      return opp.dedupe_key.toLowerCase().includes(userKey);
+    });
+
+    // Build opportunity map
     const oppMap = new Map<string, any>();
-    opportunities?.forEach((opp) => oppMap.set(opp.id, opp));
+    filteredOpps.forEach((opp) => oppMap.set(opp.id, opp));
 
-    // Helper to determine owner of an opportunity
-    const getOwner = (opp: any) => {
-      if (!opp || !opp.dedupe_key) return 'user';
-      if (opp.dedupe_key.startsWith('friend:')) return 'friend';
-      return 'user'; // default to user
-    };
-
-    // Filter opportunities by profile
-    const filteredOpps = opportunities?.filter((opp) => {
-      const owner = getOwner(opp);
-      if (profileFilter === 'all') return true;
-      return owner === profileFilter;
-    }) || [];
-
-    // Filter applications by profile
-    const filteredApps = applications?.filter((app) => {
+    // Filter applications strictly for this user
+    const filteredApps = (applications || []).filter((app) => {
+      if (app.user_id && app.user_id.toLowerCase().trim() === userKey) return true;
       const opp = oppMap.get(app.opportunity_id);
-      const owner = getOwner(opp);
-      if (profileFilter === 'all') return true;
-      return owner === profileFilter;
-    }) || [];
+      return opp !== undefined;
+    });
 
     // 1. Calculate new matches count
     const newMatchesCount = filteredOpps.filter((opp) => opp.status === 'new').length;
