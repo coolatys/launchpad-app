@@ -30,7 +30,7 @@ const STATUS_OPTIONS = [
 
 export default function ApplicationsPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, hasCompletedProfile } = useAuth();
 
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,12 +42,16 @@ export default function ApplicationsPage() {
   // Local state for editing notes
   const [notesLocal, setNotesLocal] = useState<{ [key: string]: string }>({});
 
-  // Auth Redirect Guard
+  // Auth & Onboarding Redirect Guard
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
+    if (!authLoading) {
+      if (!user) {
+        router.push('/login');
+      } else if (!hasCompletedProfile) {
+        router.push('/onboarding');
+      }
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, hasCompletedProfile, router]);
 
   const fetchApplications = async () => {
     if (!user?.email) return;

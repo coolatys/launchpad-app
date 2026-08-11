@@ -7,7 +7,7 @@ import { useAuth } from '@/components/AuthContext';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, hasCompletedProfile } = useAuth();
 
   const [profile, setProfile] = useState({
     name: '',
@@ -28,12 +28,16 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Auth redirect guard
+  // Auth & Onboarding Redirect Guard
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
+    if (!authLoading) {
+      if (!user) {
+        router.push('/login');
+      } else if (!hasCompletedProfile) {
+        router.push('/onboarding');
+      }
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, hasCompletedProfile, router]);
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -45,16 +49,16 @@ export default function ProfilePage() {
       const data = await res.json();
       if (data.profile) {
         setProfile({
-          name: data.profile.name || user?.user_metadata?.full_name || '',
+          name: data.profile.full_name || data.profile.name || user?.user_metadata?.full_name || '',
           contact: data.profile.contact || user?.email || '',
           headline: data.profile.headline || '',
           education: data.profile.education || '',
           certifications: data.profile.certifications || '',
           skills: data.profile.skills || '',
-          experience: data.profile.experience || '',
+          experience: data.profile.about_me || data.profile.experience || '',
           project: data.profile.project || '',
-          interests: data.profile.interests || '',
-          cv_master: data.profile.cv_master || '',
+          interests: typeof data.profile.interests === 'object' ? JSON.stringify(data.profile.interests, null, 2) : (data.profile.interests || ''),
+          cv_master: data.profile.cv_text || data.profile.cv_master || '',
           job_queries: Array.isArray(data.profile.job_queries) ? data.profile.job_queries.join('\n') : (data.profile.job_queries || ''),
           scholarship_queries: Array.isArray(data.profile.scholarship_queries) ? data.profile.scholarship_queries.join('\n') : (data.profile.scholarship_queries || ''),
         });

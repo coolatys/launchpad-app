@@ -24,7 +24,7 @@ import { Opportunity } from '@/lib/types';
 
 export default function OpportunitiesPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, hasCompletedProfile } = useAuth();
 
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,12 +54,16 @@ export default function OpportunitiesPage() {
   const [scanCount, setScanCount] = useState(0);
   const [scanFinished, setScanFinished] = useState(false);
 
-  // Auth Redirect Guard
+  // Auth & Onboarding Redirect Guard
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
+    if (!authLoading) {
+      if (!user) {
+        router.push('/login');
+      } else if (!hasCompletedProfile) {
+        router.push('/onboarding');
+      }
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, hasCompletedProfile, router]);
 
   const fetchOpportunities = async (filter: 'new' | 'shortlisted' | 'dismissed') => {
     if (!user?.email) return;
