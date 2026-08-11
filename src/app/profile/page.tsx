@@ -36,10 +36,11 @@ export default function ProfilePage() {
   }, [user, authLoading, router]);
 
   const fetchProfile = async () => {
+    if (!user) return;
     setLoading(true);
     setStatus(null);
     try {
-      const res = await fetch('/api/profile');
+      const res = await fetch(`/api/profile?user_id=${user.id}&userEmail=${encodeURIComponent(user.email || '')}`);
       if (!res.ok) throw new Error('Failed to load profile');
       const data = await res.json();
       if (data.profile) {

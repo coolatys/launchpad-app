@@ -1,15 +1,16 @@
 export interface Profile {
-  id: number;
-  name: string;
+  id?: string;
+  user_id: string;
+  full_name: string;
   contact: string;
   headline?: string;
   education?: string;
-  certifications?: string;
-  skills?: string;
-  experience?: string;
-  project?: string;
-  interests?: string;
-  cv_master?: string;
+  cv_file_url?: string;
+  cv_text?: string;
+  cv_parsed_data?: any;
+  interests?: any;
+  about_me?: string;
+  onboarding_completed_at?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -34,6 +35,31 @@ export interface Source {
   created_at?: string;
 }
 
+export interface Posting {
+  id: string;
+  source_url: string;
+  title: string;
+  organization?: string;
+  posting_type: 'job' | 'scholarship';
+  location?: string;
+  description?: string;
+  raw_content_hash?: string;
+  first_seen_at?: string;
+  last_seen_at?: string;
+}
+
+export interface UserMatch {
+  id: string;
+  user_id: string;
+  posting_id: string;
+  compatibility_score: number;
+  match_reasons?: string[] | any;
+  status: 'new' | 'viewed' | 'shortlisted' | 'dismissed' | 'applied';
+  notified_at?: string;
+  found_at?: string;
+  posting?: Posting;
+}
+
 export interface Opportunity {
   id?: string;
   kind: 'job' | 'scholarship';
@@ -42,13 +68,13 @@ export interface Opportunity {
   location: string;
   url: string;
   description: string;
-  deadline: string; // Keep as string for flexible API date responses
+  deadline: string;
   provider: SourceProvider;
   fit_score: number | null;
   fit_reasons: string | null;
   discovered_at?: string;
-  dedupe_key: string; // unique hash (e.g. provider + external_id)
-  status: 'new' | 'shortlisted' | 'dismissed';
+  dedupe_key: string;
+  status: 'new' | 'shortlisted' | 'dismissed' | 'applied';
 }
 
 export interface Application {
@@ -60,11 +86,23 @@ export interface Application {
   url: string;
   deadline?: string;
   tailored_summary?: string;
-  tailored_bullets?: string; // Text representation of tailored CV bullets
-  tailored_letter?: string; // Cover letter (max 180 words)
+  tailored_bullets?: string;
+  tailored_letter?: string;
   status: 'to_apply' | 'drafted' | 'submitted' | 'interview' | 'offer' | 'rejected';
   notes?: string;
   opportunities?: { dedupe_key?: string } | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ScanRun {
+  id: string;
+  user_id: string;
+  started_at: string;
+  completed_at?: string;
+  status: 'running' | 'completed' | 'failed';
+  error_message?: string;
+  scan_payload?: any;
+  raw_response?: any;
+  new_matches_count: number;
 }
