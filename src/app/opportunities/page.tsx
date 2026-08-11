@@ -187,19 +187,28 @@ export default function OpportunitiesPage() {
   };
 
   const runAgentCheck = async () => {
+    if (!user || !user.id) {
+      setStatusMsg({ type: 'error', message: 'DEBUG: Frontend user object is missing or has no ID.' });
+      return;
+    }
+
     setChecking(true);
     setIsScanning(true);
     setScanFinished(false);
     setStatusMsg(null);
     try {
+      const payload = { user_id: user.id };
+      console.log('Frontend sending payload:', payload);
+
       const res = await fetch('/api/opportunities/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user?.id }),
+        body: JSON.stringify(payload),
       });
+      
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.error || 'Failed to run agent scan');
+        throw new Error(errorData?.error || `Failed with status ${res.status}`);
       }
       
       setStatusMsg({

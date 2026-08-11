@@ -10,11 +10,22 @@ export async function POST(request: Request) {
   let userId = 'default_user';
 
   try {
-    const body = await request.json().catch(() => ({}));
-    userId = (body.user_id || body.userId || body.userEmail || 'default_user').toLowerCase().trim();
+    const rawBody = await request.text();
+    console.log('Raw check request body:', rawBody);
+    
+    let body: any = {};
+    try {
+      body = JSON.parse(rawBody);
+    } catch (e) {
+      console.log('Failed to parse JSON:', e);
+    }
+    
+    userId = (body.user_id || body.userId || body.userEmail || '').toLowerCase().trim();
 
-    if (!userId || userId === 'default_user') {
-      throw new Error('Valid user_id required for scan');
+    if (!userId) {
+      return NextResponse.json({ 
+        error: `Valid user_id required. DEBUG: Received rawBody='${rawBody}', parsedBody=${JSON.stringify(body)}` 
+      }, { status: 400 });
     }
 
     // 1. Fetch user's profile
