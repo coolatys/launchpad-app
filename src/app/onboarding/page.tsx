@@ -5,150 +5,233 @@ import { useRouter } from 'next/navigation';
 import {
   User,
   FileText,
-  Search,
+  Compass,
+  MessageSquare,
   CheckCircle2,
   ArrowRight,
   ArrowLeft,
   Upload,
   Loader2,
   Briefcase,
-  GraduationCap,
   Sparkles,
-  ShieldCheck,
+  AlertCircle,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthContext';
 
-export default function OnboardingPage() {
+export default function OnboardingWizardPage() {
   const router = useRouter();
   const { user } = useAuth();
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Step 2 CV Mode: 'file' or 'text'
+  const [cvMode, setCvMode] = useState<'file' | 'text'>('file');
+  const [fileName, setFileName] = useState<string | null>(null);
 
   // Form State
-  const [profile, setProfile] = useState({
+  const [formData, setFormData] = useState({
+    // Step 1: Basic Info
     name: user?.user_metadata?.full_name || '',
     contact: user?.email || '',
     headline: '',
     education: '',
-    skills: '',
-    experience: '',
-    interests: '',
+    
+    // Step 2: CV Text
     cv_master: '',
-    job_queries: 'Graduate software engineer Nigeria\nEntry level frontend developer remote',
-    scholarship_queries: 'MSc computer science scholarships Europe',
+
+    // Step 3: Interests
+    kindPreference: 'both' as 'job' | 'scholarship' | 'both',
+    industry: '',
+    location: '',
+    job_queries: 'Graduate software engineer\nEntry level developer remote',
+    scholarship_queries: 'MSc computer science scholarships',
+
+    // Step 4: Personal Prompt
+    aboutYourself: '',
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setProfile((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle plain-text CV file upload
+  // Handle CV File Upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setFileName(file.name);
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
       if (text) {
-        setProfile((prev) => ({
-          ...prev,
-          cv_master: text,
-        }));
-        setStatus('CV text successfully extracted from file!');
-        setTimeout(() => setStatus(null), 3000);
+        setFormData((prev) => ({ ...prev, cv_master: text }));
+        setErrorMsg(null);
       }
     };
     reader.readAsText(file);
   };
 
-  const handleFinishOnboarding = async (e: React.FormEvent) => {
+  // Step Validation Functions
+  const validateStep1 = () => {
+    if (!formData.name.trim()) {
+      setErrorMsg('Please enter your full name.');
+      return false;
+    }
+    if (!formData.contact.trim()) {
+      setErrorMsg('Please enter your contact details.');
+      return false;
+    }
+    setErrorMsg(null);
+    return true;
+  };
+
+  const validateStep2 = () => {
+    if (!formData.cv_master.trim()) {
+      setErrorMsg(
+        cvMode === 'file'
+          ? 'Please select a resume file to upload.'
+          : 'Please paste or type your CV text to proceed.'
+      );
+      return false;
+    }
+    setErrorMsg(null);
+    return true;
+  };
+
+  const validateStep3 = () => {
+    if (!formData.location.trim()) {
+      setErrorMsg('Please specify your location preference (e.g. Lagos, London, Remote).');
+      return false;
+    }
+    setErrorMsg(null);
+    return true;
+  };
+
+  const validateStep4 = () => {
+    setErrorMsg(null);
+    return true;
+  };
+
+  const handleNext = () => {
+    if (step === 1 && !validateStep1()) return;
+    if (step === 2 && !validateStep2()) return;
+    if (step === 3 && !validateStep3()) return;
+    if (step === 4 && !validateStep4()) return;
+
+    if (step < 5) {
+      setStep((prev) => (prev + 1) as any);
+    }
+  };
+
+  const handleBack = () => {
+    setErrorMsg(null);
+    if (step > 1) {
+      setStep((prev) => (prev - 1) as any);
+    }
+  };
+
+  const handleSubmitProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setStatus(null);
+    setErrorMsg(null);
 
     const payload = {
-      ...profile,
-      job_queries: profile.job_queries.split('\n').map((q) => q.trim()).filter(Boolean),
-      scholarship_queries: profile.scholarship_queries.split('\n').map((q) => q.trim()).filter(Boolean),
+      name: formData.name.trim(),
+      contact: formData.contact.trim(),
+      headline: formData.headline.trim(),
+      education: formData.education.trim(),
+      cv_master: formData.cv_master.trim(),
+      interests: `Preference: ${formData.kindPreference} | Industry: ${formData.industry} | Location: ${formData.location}`,
+      experience: formData.aboutYourself.trim(),
+      job_queries: formData.job_queries.split('\n').map((q) => q.trim()).filter(Boolean),
+      scholarship_queries: formData.scholarship_queries.split('\n').map((q) => q.trim()).filter(Boolean),
+      user_id: user?.id || user?.email,
+      onboarding_completed: true,
     };
 
     try {
-      const res = await fetch('/api/profile?type=user', {
+      const res = await fetch('/api/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error('Failed to save candidate onboarding profile.');
+      if (!res.ok) throw new Error('Failed to save candidate profile.');
 
-      // Trigger progressive background scan for user
+      // Kick off fresh opportunity search scan for user
       await fetch('/api/opportunities/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profileType: 'user' }),
+        body: JSON.stringify({ user_id: user?.id || user?.email }),
       });
 
-      // Redirect to opportunities page with progressive scan
+      // Redirect to fresh opportunities page
       router.push('/opportunities?scanning=true');
     } catch (err: any) {
-      setStatus(err.message || 'An error occurred. Please try again.');
+      setErrorMsg(err.message || 'An error occurred while saving.');
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-8 space-y-8">
-      {/* Step Indicator Header */}
+    <div className="max-w-2xl mx-auto py-8 space-y-6">
+      {/* Step Progress Bar */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div>
-            <h1 className="text-2xl font-extrabold text-navy flex items-center gap-2.5">
-              <Sparkles className="w-7 h-7 text-gold" />
-              Welcome Onboard!
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">Set up your candidate profile to start automated job matching.</p>
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-6 h-6 text-gold" />
+            <h1 className="text-xl font-extrabold text-navy">Candidate Onboarding</h1>
           </div>
           <span className="text-xs font-bold px-3 py-1 bg-navy/5 text-navy rounded-full border border-navy/10">
-            Step {step} of 3
+            Step {step} of 5
           </span>
         </div>
 
-        {/* Progress Bar */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className={`h-2 rounded-full transition-all duration-300 ${step >= 1 ? 'bg-gold' : 'bg-slate-200'}`} />
-          <div className={`h-2 rounded-full transition-all duration-300 ${step >= 2 ? 'bg-gold' : 'bg-slate-200'}`} />
-          <div className={`h-2 rounded-full transition-all duration-300 ${step >= 3 ? 'bg-gold' : 'bg-slate-200'}`} />
+        <div className="grid grid-cols-5 gap-2">
+          {[1, 2, 3, 4, 5].map((s) => (
+            <div
+              key={s}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                s <= step ? 'bg-gold' : 'bg-slate-200'
+              }`}
+            />
+          ))}
         </div>
       </div>
 
-      {status && (
-        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-sm flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5 text-amber-600 shrink-0" />
-          <span>{status}</span>
+      {/* Validation Alert */}
+      {errorMsg && (
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-2.5 animate-in fade-in">
+          <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+          <span>{errorMsg}</span>
         </div>
       )}
 
-      {/* Form Wizard Card */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-8">
+      {/* Wizard Step Card */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 space-y-6">
+        {/* STEP 1: BASIC INFO */}
         {step === 1 && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold text-navy flex items-center gap-2 border-b border-slate-100 pb-3">
-              <User className="w-5 h-5 text-gold" />
-              1. Basic Profile & Headline
-            </h2>
+          <div className="space-y-5 animate-in fade-in duration-200">
+            <div>
+              <h2 className="text-lg font-bold text-navy flex items-center gap-2 border-b border-slate-100 pb-2">
+                <User className="w-5 h-5 text-gold" />
+                Step 1: Basic Information
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">Let's start with your identity and contact details.</p>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
                 <input
                   type="text"
                   required
                   name="name"
-                  value={profile.name}
+                  value={formData.name}
                   onChange={handleChange}
                   placeholder="e.g. Obaloluwa Akerele"
                   className="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none"
@@ -156,179 +239,272 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Contact Email / Phone *</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Contact Details *</label>
                 <input
                   type="text"
                   required
                   name="contact"
-                  value={profile.contact}
+                  value={formData.contact}
                   onChange={handleChange}
                   placeholder="email@example.com | +234..."
                   className="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none"
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Professional Headline</label>
-              <input
-                type="text"
-                name="headline"
-                value={profile.headline}
-                onChange={handleChange}
-                placeholder="e.g. Mechanical Engineer | Embedded Systems Developer"
-                className="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none"
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Professional Headline</label>
+                <input
+                  type="text"
+                  name="headline"
+                  value={formData.headline}
+                  onChange={handleChange}
+                  placeholder="e.g. Mechanical Engineering Graduate | Web Developer"
+                  className="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none"
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Education Background</label>
-              <textarea
-                rows={3}
-                name="education"
-                value={profile.education}
-                onChange={handleChange}
-                placeholder="Degrees, universities, graduating GPA or expected year..."
-                className="w-full px-4 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none"
-              />
-            </div>
-
-            <div className="flex justify-end pt-4">
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                className="px-6 py-2.5 bg-navy hover:bg-navy-light text-white font-bold text-sm rounded-xl flex items-center gap-2 shadow-md transition cursor-pointer"
-              >
-                Next: CV & Resume
-                <ArrowRight className="w-4 h-4 text-gold" />
-              </button>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Education Background</label>
+                <textarea
+                  rows={3}
+                  name="education"
+                  value={formData.education}
+                  onChange={handleChange}
+                  placeholder="e.g. B.Eng Mechanical Engineering, ABUAD (CGPA: 4.45 / 5.00), Graduating Oct 2026"
+                  className="w-full px-4 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none"
+                />
+              </div>
             </div>
           </div>
         )}
 
+        {/* STEP 2: CV INPUT (TOGGLE: FILE OR TEXT) */}
         {step === 2 && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold text-navy flex items-center gap-2 border-b border-slate-100 pb-3">
-              <FileText className="w-5 h-5 text-gold" />
-              2. Upload / Paste Resume Context
-            </h2>
-            <p className="text-xs text-slate-500">
-              The Gemini AI agent will compare your resume text against every discovered job posting to compute your compatibility score.
-            </p>
-
-            {/* File Upload Area */}
-            <div className="border-2 border-dashed border-slate-300 hover:border-navy rounded-2xl p-6 text-center space-y-3 bg-slate-50/50 transition">
-              <Upload className="w-8 h-8 text-slate-400 mx-auto" />
-              <div>
-                <p className="text-sm font-semibold text-slate-700">Upload CV File (.txt / .doc / plain text)</p>
-                <p className="text-xs text-slate-400">Click below to load text from your resume</p>
-              </div>
-              <input
-                type="file"
-                accept=".txt,.doc,.docx"
-                onChange={handleFileUpload}
-                className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-navy file:text-white hover:file:bg-navy-light cursor-pointer"
-              />
-            </div>
-
+          <div className="space-y-5 animate-in fade-in duration-200">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Master CV Plain Text</label>
-              <textarea
-                rows={8}
-                name="cv_master"
-                value={profile.cv_master}
-                onChange={handleChange}
-                placeholder="Paste full plain text resume here..."
-                className="w-full px-4 py-2.5 text-xs font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none"
-              />
+              <h2 className="text-lg font-bold text-navy flex items-center gap-2 border-b border-slate-100 pb-2">
+                <FileText className="w-5 h-5 text-gold" />
+                Step 2: Resume / CV Context
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">Choose how you want to provide your CV details.</p>
             </div>
 
-            <div className="flex items-center justify-between pt-4">
+            {/* Mode Switcher Tabs */}
+            <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
               <button
                 type="button"
-                onClick={() => setStep(1)}
-                className="px-5 py-2.5 border border-slate-300 text-slate-700 font-semibold text-sm rounded-xl flex items-center gap-2 hover:bg-slate-50 transition cursor-pointer"
+                onClick={() => setCvMode('file')}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${
+                  cvMode === 'file' ? 'bg-white text-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                }`}
               >
-                <ArrowLeft className="w-4 h-4" />
-                Back
+                📁 Upload a File
               </button>
+              <button
+                type="button"
+                onClick={() => setCvMode('text')}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${
+                  cvMode === 'text' ? 'bg-white text-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                📝 Paste Text Instead
+              </button>
+            </div>
 
-              <button
-                type="button"
-                onClick={() => setStep(3)}
-                className="px-6 py-2.5 bg-navy hover:bg-navy-light text-white font-bold text-sm rounded-xl flex items-center gap-2 shadow-md transition cursor-pointer"
-              >
-                Next: Search Target Queries
-                <ArrowRight className="w-4 h-4 text-gold" />
-              </button>
+            {/* File Upload Mode */}
+            {cvMode === 'file' ? (
+              <div className="border-2 border-dashed border-slate-300 hover:border-navy rounded-2xl p-8 text-center space-y-3 bg-slate-50/50 transition">
+                <Upload className="w-10 h-10 text-slate-400 mx-auto" />
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">Upload CV File (.txt / .doc / plain text)</p>
+                  {fileName && (
+                    <p className="text-xs text-emerald-600 font-bold mt-1 flex items-center justify-center gap-1">
+                      <CheckCircle2 className="w-4 h-4" /> Selected: {fileName}
+                    </p>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept=".txt,.doc,.docx"
+                  onChange={handleFileUpload}
+                  className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-navy file:text-white hover:file:bg-navy-light cursor-pointer"
+                />
+              </div>
+            ) : (
+              /* Text Paste Mode */
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Paste Resume Content</label>
+                <textarea
+                  rows={8}
+                  name="cv_master"
+                  value={formData.cv_master}
+                  onChange={handleChange}
+                  placeholder="Paste your full resume text here..."
+                  className="w-full px-4 py-2.5 text-xs font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none"
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* STEP 3: INTERESTS & PREFERENCES */}
+        {step === 3 && (
+          <div className="space-y-5 animate-in fade-in duration-200">
+            <div>
+              <h2 className="text-lg font-bold text-navy flex items-center gap-2 border-b border-slate-100 pb-2">
+                <Compass className="w-5 h-5 text-gold" />
+                Step 3: Target Role & Location Preferences
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">Specify what kinds of opportunities you want our AI agent to search.</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Opportunity Type Preference</label>
+                <select
+                  name="kindPreference"
+                  value={formData.kindPreference}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none"
+                >
+                  <option value="both">Both Jobs & Scholarships</option>
+                  <option value="job">Jobs & Internships Only</option>
+                  <option value="scholarship">Scholarships & Fellowships Only</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Industry / Field of Focus</label>
+                <input
+                  type="text"
+                  name="industry"
+                  value={formData.industry}
+                  onChange={handleChange}
+                  placeholder="e.g. Mechanical Engineering, Software Development, Renewable Energy"
+                  className="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Location Preferences *</label>
+                <input
+                  type="text"
+                  required
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  placeholder="e.g. Lagos Nigeria, London UK, Remote, Worldwide"
+                  className="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Custom Search Keywords (One per line)</label>
+                <textarea
+                  rows={4}
+                  name="job_queries"
+                  value={formData.job_queries}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 text-xs font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none"
+                />
+              </div>
             </div>
           </div>
         )}
 
-        {step === 3 && (
-          <form onSubmit={handleFinishOnboarding} className="space-y-6">
-            <h2 className="text-xl font-bold text-navy flex items-center gap-2 border-b border-slate-100 pb-3">
-              <Search className="w-5 h-5 text-gold" />
-              3. Target Job & Scholarship Queries
-            </h2>
-            <p className="text-xs text-slate-500">
-              Enter search keywords (one per line). The background crawler will search these across job portals and web sources.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Job Queries (One per line)</label>
-                <textarea
-                  rows={5}
-                  name="job_queries"
-                  value={profile.job_queries}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 text-xs font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Scholarship Queries (One per line)</label>
-                <textarea
-                  rows={5}
-                  name="scholarship_queries"
-                  value={profile.scholarship_queries}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 text-xs font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none"
-                />
-              </div>
+        {/* STEP 4: PERSONAL PROMPT ("Tell me about yourself") */}
+        {step === 4 && (
+          <div className="space-y-5 animate-in fade-in duration-200">
+            <div>
+              <h2 className="text-lg font-bold text-navy flex items-center gap-2 border-b border-slate-100 pb-2">
+                <MessageSquare className="w-5 h-5 text-gold" />
+                Step 4: Tell Us About Yourself
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Share your personal passions, career aspirations, or unique projects beyond your CV. Gemini will use this to enrich your compatibility matching score.
+              </p>
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                className="px-5 py-2.5 border border-slate-300 text-slate-700 font-semibold text-sm rounded-xl flex items-center gap-2 hover:bg-slate-50 transition cursor-pointer"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </button>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-8 py-3 bg-navy hover:bg-navy-light text-white font-bold text-sm rounded-xl shadow-lg shadow-navy/20 flex items-center gap-2 transition disabled:opacity-50 cursor-pointer"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Launching AI Matching Scan...
-                  </>
-                ) : (
-                  <>
-                    Complete Onboarding & Start Scan
-                    <CheckCircle2 className="w-5 h-5 text-gold" />
-                  </>
-                )}
-              </button>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Free-Text Personal Prompt</label>
+              <textarea
+                rows={7}
+                name="aboutYourself"
+                value={formData.aboutYourself}
+                onChange={handleChange}
+                placeholder="e.g. I am passionate about mechatronics, embedded systems, and robotics. I built an ESP32 automated system and worked on C-130 aircraft maintenance. I am looking for hands-on engineering opportunities..."
+                className="w-full px-4 py-3 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none"
+              />
             </div>
-          </form>
+          </div>
         )}
+
+        {/* STEP 5: REVIEW & FINAL SUBMIT */}
+        {step === 5 && (
+          <div className="space-y-5 animate-in fade-in duration-200">
+            <div>
+              <h2 className="text-lg font-bold text-navy flex items-center gap-2 border-b border-slate-100 pb-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                Step 5: Review & Kick Off Search
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">Review your onboarding profile before launching the automated AI scan.</p>
+            </div>
+
+            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3 text-xs text-slate-700">
+              <p><strong>Candidate:</strong> {formData.name} ({formData.contact})</p>
+              <p><strong>Headline:</strong> {formData.headline || 'N/A'}</p>
+              <p><strong>Preference:</strong> {formData.kindPreference} in {formData.location}</p>
+              <p><strong>CV Loaded:</strong> {formData.cv_master ? `${formData.cv_master.substring(0, 100)}...` : 'None'}</p>
+              <p><strong>Personal Bio:</strong> {formData.aboutYourself || 'N/A'}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Wizard Controls Footer */}
+        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+          {step > 1 ? (
+            <button
+              type="button"
+              onClick={handleBack}
+              className="px-4 py-2 border border-slate-300 text-slate-700 text-xs font-semibold rounded-xl flex items-center gap-1.5 hover:bg-slate-50 transition cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </button>
+          ) : (
+            <div />
+          )}
+
+          {step < 5 ? (
+            <button
+              type="button"
+              onClick={handleNext}
+              className="px-6 py-2.5 bg-navy hover:bg-navy-light text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-md transition cursor-pointer"
+            >
+              Next Step
+              <ArrowRight className="w-4 h-4 text-gold" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSubmitProfile}
+              disabled={loading}
+              className="px-8 py-3 bg-navy hover:bg-navy-light text-white text-xs font-bold rounded-xl shadow-lg shadow-navy/20 flex items-center gap-2 transition disabled:opacity-50 cursor-pointer"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving & Launching Search...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 text-gold" />
+                  Complete Onboarding & Start Scan
+                </>
+              )}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

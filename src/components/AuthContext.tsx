@@ -9,6 +9,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
+  hasCompletedProfile: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithMagicLink: (email: string) => Promise<{ error: string | null }>;
   signUpWithEmail: (email: string, password: string, name?: string) => Promise<{ error: string | null; message?: string }>;
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   loading: true,
   isAdmin: false,
+  hasCompletedProfile: false,
   signInWithGoogle: async () => {},
   signInWithMagicLink: async () => ({ error: null }),
   signUpWithEmail: async () => ({ error: null }),
@@ -36,20 +38,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasCompletedProfile, setHasCompletedProfile] = useState(false);
+
+  const checkUserProfile = async (currentUser: User | null) => {
+    if (!currentUser) {
+      setHasCompletedProfile(false);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/profile?user_id=${currentUser.id}&userEmail=${encodeURIComponent(currentUser.email || '')}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.profile && (data.profile.onboarding_completed || data.profile.cv_master)) {
+          setHasCompletedProfile(true);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('Profile check error:', e);
+    }
+    setHasCompletedProfile(false);
+  };
 
   useEffect(() => {
-    // 1. Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
+      checkUserProfile(session?.user ?? null).finally(() => setLoading(false));
     });
 
-    // 2. Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
+      checkUserProfile(session?.user ?? null).finally(() => setLoading(false));
     });
 
     return () => {
@@ -126,6 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         loading,
         isAdmin,
+        hasCompletedProfile,
         signInWithGoogle,
         signInWithMagicLink,
         signUpWithEmail,

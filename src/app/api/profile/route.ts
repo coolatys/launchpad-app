@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabaseClient';
 import fs from 'fs';
 import path from 'path';
 
-// Define the path to the local profiles file
 const PROFILES_PATH = path.join(process.cwd(), 'agent', 'profiles.json');
 
-// Helper to read profiles from JSON file
 function readProfiles() {
   try {
     if (fs.existsSync(PROFILES_PATH)) {
@@ -15,10 +14,9 @@ function readProfiles() {
   } catch (err) {
     console.error('Error reading profiles file:', err);
   }
-  return { user: {}, friend: {} };
+  return {};
 }
 
-// Helper to write profiles to JSON file
 function writeProfiles(profiles: any) {
   try {
     const dir = path.dirname(PROFILES_PATH);
@@ -33,14 +31,37 @@ function writeProfiles(profiles: any) {
   }
 }
 
-// GET /api/profile
+// GET /api/profile?user_id=...&userEmail=...
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type') || 'user'; // 'user' or 'friend'
-    
-    const profiles = readProfiles();
-    const profile = profiles[type] || {};
+    const userId = searchParams.get('user_id');
+    const userEmail = searchParams.get('userEmail');
+
+    const key = (userId || userEmail || '').toLowerCase().trim();
+
+    if (!key) {
+      return NextResponse.json({ profile: null });
+    }
+
+    // 1. Try fetching from Supabase profiles table
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .or(`user_id.eq.${key},contact.eq.${key}`)
+        .maybeSingle();
+
+      if (data) {
+        return NextResponse.json({ profile: data });
+      }
+    } catch (e) {
+      console.log('Supabase profile query fallback:', e);
+    }
+
+    // 2. Fallback to local JSON file scoped by key
+    const allProfiles = readProfiles();
+    const profile = allProfiles[key] || null;
 
     return NextResponse.json({ profile });
   } catch (err: any) {
@@ -51,25 +72,44 @@ export async function GET(request: Request) {
 // POST /api/profile
 export async function POST(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type') || 'user';
-    
     const body = await request.json();
-    const profiles = readProfiles();
-    
-    profiles[type] = {
-      ...profiles[type],
-      ...body,
-    };
-    
-    const success = writeProfiles(profiles);
-    if (!success) {
-      return NextResponse.json({ error: 'Failed to write profiles JSON to disk' }, { status: 500 });
+    const { user_id, contact, name, headline, education, cv_master, interests, experience, job_queries, scholarship_queries, onboarding_completed } = body;
+
+    const key = (user_id || contact || 'default').toLowerCase().trim();
+
+    // 1. Save to Supabase profiles table
+    try {
+      await supabaseAdmin.from('profiles').upsert([
+        {
+          user_id: key,
+          name,
+          contact,
+          headline,
+          education,
+          cv_master,
+          interests,
+          experience,
+          job_queries,
+          scholarship_queries,
+          onboarding_completed: true,
+          updated_at: new Date().toISOString(),
+        },
+      ]);
+    } catch (e) {
+      console.log('Supabase profile upsert fallback:', e);
     }
 
-    return NextResponse.json({ profile: profiles[type], message: 'Profile saved successfully!' });
+    // 2. Save to local JSON file keyed by user ID/email
+    const allProfiles = readProfiles();
+    allProfiles[key] = {
+      ...body,
+      onboarding_completed: true,
+      updated_at: new Date().toISOString(),
+    };
+    writeProfiles(allProfiles);
+
+    return NextResponse.json({ profile: allProfiles[key], message: 'Profile saved successfully!' });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
-
