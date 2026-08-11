@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     let rawProfileData: any = null;
     try {
       const { data } = await supabaseAdmin
-        .from('profiles')
+        .from('profile')
         .select('*')
         .or(`user_id.eq.${selectedUserId},contact.eq.${selectedUserId}`)
         .maybeSingle();

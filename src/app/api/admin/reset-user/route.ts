@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
     // 1. Delete from Supabase tables
     try {
-      await supabaseAdmin.from('profiles').delete().or(`user_id.eq.${userEmail},contact.eq.${userEmail}`);
+      await supabaseAdmin.from('profile').delete().or(`user_id.eq.${userEmail},contact.eq.${userEmail}`);
       await supabaseAdmin.from('user_matches').delete().eq('user_id', userEmail);
       await supabaseAdmin.from('scan_runs').delete().eq('user_id', userEmail);
       await supabaseAdmin.from('applications').delete().filter('opportunities.dedupe_key', 'ilike', `%${userEmail}%`);

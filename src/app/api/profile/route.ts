@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     // 1. Try fetching from Supabase profiles table
     try {
       const { data, error } = await supabaseAdmin
-        .from('profiles')
+        .from('profile')
         .select('*')
         .or(`user_id.eq.${key},contact.eq.${key}`)
         .maybeSingle();
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
       updated_at: new Date().toISOString(),
     };
 
-    const { error: dbError } = await supabaseAdmin.from('profiles').upsert([dbPayload], { onConflict: 'user_id' });
+    const { error: dbError } = await supabaseAdmin.from('profile').upsert([dbPayload], { onConflict: 'user_id' });
     
     if (dbError) {
       console.error('Supabase profile upsert error:', dbError);

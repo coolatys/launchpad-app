@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     let profile: any = null;
     try {
       const { data } = await supabaseAdmin
-        .from('profiles')
+        .from('profile')
         .select('*')
         .or(`user_id.eq.${userId},contact.eq.${userId}`)
         .maybeSingle();

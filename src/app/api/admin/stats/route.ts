@@ -29,7 +29,7 @@ export async function GET() {
     let totalApplications = 0;
 
     try {
-      const { count: profileCount } = await supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true });
+      const { count: profileCount } = await supabaseAdmin.from('profile').select('*', { count: 'exact', head: true });
       const { count: oppCount } = await supabaseAdmin.from('opportunities').select('*', { count: 'exact', head: true });
       const { count: appCount } = await supabaseAdmin.from('applications').select('*', { count: 'exact', head: true });
 
