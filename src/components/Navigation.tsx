@@ -21,13 +21,14 @@ import { useAuth } from '@/components/AuthContext';
 
 export default function Navigation({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, signOut, hasCompletedProfile } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const isUnauthenticated = !user || pathname === '/login' || pathname.startsWith('/admin');
+  const isPendingOnboarding = user && !hasCompletedProfile;
 
-  if (isUnauthenticated) {
+  if (isUnauthenticated || isPendingOnboarding) {
     return <main className="min-h-screen bg-slate-50">{children}</main>;
   }
 
