@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 const PROFILES_PATH = path.join(process.cwd(), 'agent', 'profiles.json');
 
@@ -76,32 +77,63 @@ export async function POST(request: Request) {
     const { user_id, contact, name, headline, education, cv_master, interests, experience, job_queries, scholarship_queries } = body;
 
     const key = (user_id || contact || 'default').toLowerCase().trim();
+    
+    // Construct interests as a plain text string or JSON string to match schema
+    const combinedInterests = `Target: ${interests}\nJobs: ${job_queries.join(', ')}\nScholarships: ${scholarship_queries.join(', ')}`;
 
     // 1. Save to Supabase profiles table
     const dbPayload = {
-      user_id: key,
-      full_name: name,
-      contact: contact,
-      cv_text: cv_master,
-      about_me: experience,
-      interests: {
-        raw: interests,
-        job_queries,
-        scholarship_queries
-      },
-      cv_parsed_data: {
-        headline,
-        education
-      },
-      onboarding_completed_at: new Date().toISOString(),
+      name,
+      contact: contact, // Using the raw contact
+      headline,
+      education,
+      experience,
+      interests: combinedInterests,
+      cv_master,
       updated_at: new Date().toISOString(),
     };
 
-    const { error: dbError } = await supabaseAdmin.from('profile').upsert([dbPayload], { onConflict: 'user_id' });
-    
-    if (dbError) {
-      console.error('Supabase profile upsert error:', dbError);
-      throw new Error(`Database error: ${dbError.message}`);
+    // Since there's no unique constraint on contact, we manually check and update/insert
+    const { data: existingProfile, error: checkError } = await supabaseAdmin
+      .from('profile')
+      .select('id')
+      .eq('contact', key)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('Supabase profile check error:', checkError);
+    }
+
+    if (existingProfile) {
+      const { error: updateError } = await supabaseAdmin
+        .from('profile')
+        .update(dbPayload)
+        .eq('id', existingProfile.id);
+        
+      if (updateError) {
+        console.error(`Database update error: ${updateError.message}`);
+      }
+    } else {
+      // The id column in this DB is an integer without auto-increment.
+      // We must fetch the max ID and increment it manually.
+      const { data: maxIdData } = await supabaseAdmin
+        .from('profile')
+        .select('id')
+        .order('id', { ascending: false })
+        .limit(1);
+        
+      let nextId = 1;
+      if (maxIdData && maxIdData.length > 0 && maxIdData[0].id) {
+        nextId = parseInt(maxIdData[0].id) + 1;
+      }
+
+      const { error: insertError } = await supabaseAdmin
+        .from('profile')
+        .insert([{ ...dbPayload, id: nextId }]);
+        
+      if (insertError) {
+        console.error(`Database insert error: ${insertError.message}`);
+      }
     }
 
     // 2. Save to local JSON file keyed by user ID/email as fallback
