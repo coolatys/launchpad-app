@@ -530,7 +530,7 @@ export default function OpportunitiesPage() {
           <AlertCircle className="w-12 h-12 text-slate-300 mx-auto" />
           <p className="font-bold text-slate-700">No matches found in this category.</p>
           <p className="text-sm max-w-md mx-auto">
-            Try clicking the &ldquo;Scan Now&rdquo; button above to trigger the discovery agent to query your sources and search for matching opportunities.
+            Try clicking the &ldquo;Scan Now&rdquo; button above to trigger the AI discovery agent to search for matching opportunities.
           </p>
         </div>
       ) : (

@@ -149,7 +149,7 @@ export default function Dashboard() {
             {scanning ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Crawling Sources...
+                Running AI Web Scan...
               </>
             ) : (
               <>

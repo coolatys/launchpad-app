@@ -30,7 +30,6 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
   const navigationItems = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Profile', href: '/profile', icon: User },
-    { name: 'Sources', href: '/sources', icon: Search },
     { name: 'Opportunities', href: '/opportunities', icon: Compass },
     { name: 'Applications', href: '/applications', icon: Briefcase },
     ...(isAdmin ? [{ name: 'Tester Feedback', href: '/feedback', icon: MessageSquarePlus }] : []),
