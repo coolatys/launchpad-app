@@ -201,7 +201,7 @@ export async function POST(request: Request) {
         console.error('user_matches table insert error:', matchError.message);
       } else {
         // Insert into legacy opportunities table for frontend backwards compatibility
-        const dedupeKey = `${userId}:${item.provider || 'adzuna'}:${item.source_url}`;
+        const dedupeKey = `${userId}:adzuna:${item.source_url}`;
         try {
           await supabaseAdmin.from('opportunities').upsert([
             {
@@ -212,7 +212,7 @@ export async function POST(request: Request) {
               url: item.source_url,
               description: item.description,
               deadline: '',
-              provider: item.provider || 'adzuna',
+              provider: 'adzuna',
               fit_score: fitScore,
               fit_reasons: Array.isArray(fitReasons) ? fitReasons.join('\n') : fitReasons,
               dedupe_key: dedupeKey,
