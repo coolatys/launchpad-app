@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'new';
-    const userEmail = searchParams.get('userEmail') || searchParams.get('userId') || 'user';
+    const userId = searchParams.get('userId') || searchParams.get('userEmail') || 'user';
 
     const { data, error } = await supabaseAdmin
       .from('opportunities')
@@ -36,9 +36,9 @@ export async function GET(request: Request) {
     // Filter out already drafted/applied opportunities
     filteredData = filteredData.filter((opp) => !draftedIds.has(opp.id));
 
-    // Filter strictly by user ID or user email prefix in dedupe_key
-    if (userEmail && userEmail !== 'all') {
-      const userKey = userEmail.toLowerCase().trim();
+    // Filter strictly by user ID in dedupe_key
+    if (userId && userId !== 'all') {
+      const userKey = userId.toLowerCase().trim();
       filteredData = filteredData.filter((opp) => {
         if (!opp.dedupe_key) return false;
         return opp.dedupe_key.toLowerCase().includes(userKey);

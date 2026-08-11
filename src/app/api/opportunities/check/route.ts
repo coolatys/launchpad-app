@@ -200,6 +200,29 @@ export async function POST(request: Request) {
       if (matchError) {
         console.error('user_matches table insert error:', matchError.message);
       } else {
+        // Insert into legacy opportunities table for frontend backwards compatibility
+        const dedupeKey = `${userId}:${item.provider || 'adzuna'}:${item.source_url}`;
+        try {
+          await supabaseAdmin.from('opportunities').upsert([
+            {
+              kind: 'job',
+              title: item.title,
+              org: item.company_name,
+              location: item.location,
+              url: item.source_url,
+              description: item.description,
+              deadline: '',
+              provider: item.provider || 'adzuna',
+              fit_score: fitScore,
+              fit_reasons: Array.isArray(fitReasons) ? fitReasons.join('\n') : fitReasons,
+              dedupe_key: dedupeKey,
+              status: 'new',
+            },
+          ], { onConflict: 'dedupe_key' });
+        } catch (e) {
+          console.error('Opportunities legacy table insert error:', e);
+        }
+
         newMatchesCount++;
         rawResponses.push({ ...item, fitScore, fitReasons });
         matchedJobsForEmail.push({

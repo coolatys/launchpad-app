@@ -66,10 +66,10 @@ export default function OpportunitiesPage() {
   }, [user, authLoading, hasCompletedProfile, router]);
 
   const fetchOpportunities = async (filter: 'new' | 'shortlisted' | 'dismissed') => {
-    if (!user?.email) return;
+    if (!user?.id) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/opportunities?status=${filter}&userEmail=${encodeURIComponent(user.email)}`);
+      const res = await fetch(`/api/opportunities?status=${filter}&userId=${encodeURIComponent(user.id)}`);
       if (!res.ok) throw new Error('Failed to load opportunities');
       const data = await res.json();
       
@@ -90,10 +90,10 @@ export default function OpportunitiesPage() {
   // Progressive scan polling effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isScanning && user?.email) {
+    if (isScanning && user?.id) {
       interval = setInterval(async () => {
         try {
-          const res = await fetch(`/api/opportunities/poll?userEmail=${encodeURIComponent(user.email!)}`);
+          const res = await fetch(`/api/opportunities/poll?userId=${encodeURIComponent(user.id)}`);
           if (res.ok) {
             const data = await res.json();
             const sorted = (data.opportunities || []).sort((a: Opportunity, b: Opportunity) => {
