@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { evaluateOpportunityFit } from '@/lib/gemini';
+import { evaluateOpportunityFit, extractSearchQueries } from '@/lib/gemini';
 import { fetchGoogleJobs } from '@/lib/serpapi';
 
 const MAX_SERPAPI_CALLS_PER_MONTH = 245;
@@ -39,13 +39,40 @@ export async function POST(request: Request) {
       throw new Error(`Profile not found for user_id ${userId}: ${profileError?.message || 'Unknown'}`);
     }
 
+    let userIndustry = 'Technology';
+    let userLocation = 'Remote';
+    let userKind = 'job';
+    
+    if (profile.interests) {
+      const matchInd = profile.interests.match(/Industry:\s*([^|\n]+)/);
+      if (matchInd && matchInd[1].trim() && matchInd[1].trim().toLowerCase() !== 'ff') {
+        userIndustry = matchInd[1].trim();
+      }
+      
+      const matchLoc = profile.interests.match(/Location:\s*([^|\n]+)/);
+      if (matchLoc && matchLoc[1].trim() && matchLoc[1].trim().toLowerCase() !== 'ff') {
+        userLocation = matchLoc[1].trim();
+      }
+      
+      const matchKind = profile.interests.match(/Preference:\s*([^|\n]+)/);
+      if (matchKind && matchKind[1].trim()) {
+        userKind = matchKind[1].trim();
+      }
+    }
+
+    // Fallback to Gemini extraction if industry is completely unknown or junk
+    if (userIndustry === 'Technology' || userIndustry.toLowerCase() === 'ff') {
+        const profileText = `Headline: ${profile.headline || ''}\nCV: ${profile.cv_master || ''}`;
+        userIndustry = await extractSearchQueries(profileText);
+    }
+
     const scanPayload = {
       user_id: userId,
       full_name: profile.full_name || profile.name || 'Candidate',
-      industry: profile.industry || 'Technology',
-      location: profile.location || 'Remote',
-      kindPreference: profile.kindPreference || 'job', // job, scholarship, or both
-      job_queries: profile.job_queries || [],
+      industry: userIndustry,
+      location: userLocation,
+      kindPreference: userKind,
+      job_queries: [],
     };
 
     // 2. Insert audit entry in scan_runs table (throws if table is missing)

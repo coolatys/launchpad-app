@@ -151,3 +151,30 @@ Output format must be strictly valid JSON without any comments:
   const cleaned = cleanJsonString(text);
   return JSON.parse(cleaned) as TailorResult;
 }
+
+export async function extractSearchQueries(profileText: string): Promise<string> {
+  try {
+    const genAI = getGenAI();
+    const model = genAI.getGenerativeModel({
+      model: getModelName(),
+      generationConfig: { maxOutputTokens: 100 },
+    });
+
+    const prompt = `
+You are an expert career agent. Read the candidate's profile and extract the ONE best industry or job title to use as a Google search query for jobs.
+For example, if they have a B.Sc in Accounting, output "Accounting".
+If they are a software engineer, output "Software Engineering".
+Output ONLY the short query string, nothing else.
+
+Candidate Profile:
+${profileText.substring(0, 3000)}
+`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim().replace(/['"]/g, '');
+    return text || 'Technology';
+  } catch (error) {
+    console.error('Error extracting search query with Gemini:', error);
+    return 'Technology';
+  }
+}
