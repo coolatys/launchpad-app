@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     const { 
       user_id, contact, name, headline, education, cv_master, 
       interests, experience, job_queries, scholarship_queries,
-      certifications, skills, project
+      certifications, skills, project, location, search_preference
     } = body;
 
     if (!user_id) {
@@ -58,6 +58,8 @@ export async function POST(request: Request) {
       experience,
       project,
       interests: combinedInterests,
+      location,
+      search_preference: search_preference || 'both',
       cv_master,
       updated_at: new Date().toISOString(),
     };

@@ -14,7 +14,8 @@ export async function fetchGoogleJobs(query: string): Promise<SerpApiJob[]> {
     throw new Error('SERPAPI_KEY is not configured');
   }
 
-  const url = `https://serpapi.com/search.json?engine=google_jobs&q=${encodeURIComponent(query)}&api_key=${apiKey}&hl=en`;
+  // num=20 attempts to return 20 results instead of default 10, to increase yield per API call
+  const url = `https://serpapi.com/search.json?engine=google_jobs&q=${encodeURIComponent(query)}&api_key=${apiKey}&hl=en&num=20`;
   
   const response = await fetch(url, {
     method: 'GET',

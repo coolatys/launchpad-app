@@ -10,6 +10,8 @@ export interface Profile {
   cv_parsed_data?: any;
   interests?: any;
   about_me?: string;
+  location?: string;
+  search_preference?: 'jobs' | 'scholarships' | 'both';
   onboarding_completed_at?: string;
   created_at?: string;
   updated_at?: string;

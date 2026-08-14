@@ -41,38 +41,46 @@ export async function POST(request: Request) {
 
     let userIndustry = 'Technology';
     let userLocation = 'Remote';
-    let userKind = 'job';
+    let userKind = 'both';
+    let jobQueries = profile.job_queries || [];
     
+    // 1. Read from actual columns first
+    if (profile.location) userLocation = profile.location;
+    if (profile.search_preference) userKind = profile.search_preference;
+
+    // 2. Fallback backwards compatibility (parsing old interests string)
     if (profile.interests) {
+      if (!profile.location) {
+        const matchLoc = profile.interests.match(/Location:\s*([^|\n]+)/);
+        if (matchLoc && matchLoc[1].trim() && matchLoc[1].trim().toLowerCase() !== 'ff') {
+          userLocation = matchLoc[1].trim();
+        }
+      }
+      if (!profile.search_preference) {
+        const matchKind = profile.interests.match(/Preference:\s*([^|\n]+)/);
+        if (matchKind && matchKind[1].trim()) {
+          userKind = matchKind[1].trim();
+        }
+      }
       const matchInd = profile.interests.match(/Industry:\s*([^|\n]+)/);
       if (matchInd && matchInd[1].trim() && matchInd[1].trim().toLowerCase() !== 'ff') {
         userIndustry = matchInd[1].trim();
       }
-      
-      const matchLoc = profile.interests.match(/Location:\s*([^|\n]+)/);
-      if (matchLoc && matchLoc[1].trim() && matchLoc[1].trim().toLowerCase() !== 'ff') {
-        userLocation = matchLoc[1].trim();
-      }
-      
-      const matchKind = profile.interests.match(/Preference:\s*([^|\n]+)/);
-      if (matchKind && matchKind[1].trim()) {
-        userKind = matchKind[1].trim();
-      }
     }
 
-    // Fallback to Gemini extraction if industry is completely unknown or junk
-    if (userIndustry === 'Technology' || userIndustry.toLowerCase() === 'ff') {
+    // 3. Fallback to Gemini extraction if queries are completely unknown or junk
+    if (!jobQueries || jobQueries.length === 0 || userIndustry === 'Technology' || userIndustry.toLowerCase() === 'ff') {
         const profileText = `Headline: ${profile.headline || ''}\nCV: ${profile.cv_master || ''}`;
-        userIndustry = await extractSearchQueries(profileText);
+        jobQueries = await extractSearchQueries(profileText);
     }
 
     const scanPayload = {
       user_id: userId,
       full_name: profile.full_name || profile.name || 'Candidate',
-      industry: userIndustry,
+      industry: jobQueries[0] || userIndustry,
       location: userLocation,
       kindPreference: userKind,
-      job_queries: [],
+      job_queries: jobQueries,
     };
 
     // 2. Insert audit entry in scan_runs table (throws if table is missing)
@@ -131,20 +139,46 @@ export async function POST(request: Request) {
     if (kindToSearch === 'both') {
       kindToSearch = Math.random() > 0.5 ? 'job' : 'scholarship';
     }
-    let queryTopic = scanPayload.industry;
+    
+    let queryTopic = 'Technology';
     if (scanPayload.job_queries && scanPayload.job_queries.length > 0) {
-      queryTopic = scanPayload.job_queries[Math.floor(Math.random() * scanPayload.job_queries.length)];
+      const randomIndex = Math.floor(Math.random() * scanPayload.job_queries.length);
+      queryTopic = scanPayload.job_queries[randomIndex];
+    } else {
+      queryTopic = scanPayload.industry;
     }
     
     const query = `${queryTopic} ${kindToSearch === 'scholarship' ? 'scholarships' : 'jobs'} in ${scanPayload.location}`;
-    console.log(`[ScanRun ${scanRunId}] SerpApi Query: "${query}"`);
+    const queryKey = query.toLowerCase().trim();
+    console.log(`[ScanRun ${scanRunId}] SerpApi Query: "${query}" (Key: "${queryKey}")`);
 
-    // 5. Fetch from SerpApi
+    // 5. Fetch from SerpApi with Shared Cache Check
     let discoveredItems = [];
-    try {
-      discoveredItems = await fetchGoogleJobs(query);
-    } catch (e: any) {
-      throw new Error(`SerpApi fetch failed: ${e.message}`);
+    
+    // Check Cache
+    const { data: cached } = await supabaseAdmin
+      .from('serpapi_cache')
+      .select('raw_response, created_at')
+      .eq('query_key', queryKey)
+      .single();
+
+    if (cached && new Date(cached.created_at).getTime() > Date.now() - 12 * 60 * 60 * 1000) {
+      console.log(`[ScanRun ${scanRunId}] Cache HIT for "${queryKey}"`);
+      discoveredItems = cached.raw_response;
+    } else {
+      console.log(`[ScanRun ${scanRunId}] Cache MISS for "${queryKey}". Fetching external...`);
+      try {
+        discoveredItems = await fetchGoogleJobs(query);
+        
+        // Upsert to cache
+        await supabaseAdmin.from('serpapi_cache').upsert({
+            query_key: queryKey,
+            raw_response: discoveredItems,
+            created_at: new Date().toISOString()
+        });
+      } catch (e: any) {
+        throw new Error(`SerpApi fetch failed: ${e.message}`);
+      }
     }
 
     let newMatchesCount = 0;
@@ -197,7 +231,7 @@ export async function POST(request: Request) {
       // ONLY evaluate fit if it's genuinely new
       try {
         const evalResult = await evaluateOpportunityFit(
-          `Name: ${profile.full_name}\nBio: ${profile.about_me || profile.experience || ''}\nCV: ${profile.cv_text || ''}`,
+          `Name: ${profile.name}\nHeadline: ${profile.headline || ''}\nExperience/Bio: ${profile.experience || ''}\nCV: ${profile.cv_master || ''}`,
           item.title,
           item.company_name,
           item.description || 'No description provided'

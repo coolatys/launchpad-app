@@ -22,6 +22,8 @@ export default function ProfilePage() {
     cv_master: '',
     job_queries: '',
     scholarship_queries: '',
+    location: '',
+    search_preference: 'both',
   });
 
   const [loading, setLoading] = useState(true);
@@ -61,6 +63,8 @@ export default function ProfilePage() {
           cv_master: data.profile.cv_text || data.profile.cv_master || '',
           job_queries: Array.isArray(data.profile.job_queries) ? data.profile.job_queries.join('\n') : (data.profile.job_queries || ''),
           scholarship_queries: Array.isArray(data.profile.scholarship_queries) ? data.profile.scholarship_queries.join('\n') : (data.profile.scholarship_queries || ''),
+          location: data.profile.location || '',
+          search_preference: data.profile.search_preference || 'both',
         });
       }
     } catch (err: any) {
@@ -214,6 +218,41 @@ export default function ProfilePage() {
                 placeholder="e.g. Mechanical Engineer | Embedded Systems Developer"
                 className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none text-slate-800 transition duration-150 text-sm"
               />
+            </div>
+          </div>
+
+
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="location" className="block text-sm font-semibold text-slate-700 mb-1">
+                Target Location
+              </label>
+              <input
+                type="text"
+                id="location"
+                name="location"
+                value={profile.location}
+                onChange={handleChange}
+                placeholder="e.g. Lagos, Nigeria"
+                className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none text-slate-800 transition duration-150 text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="search_preference" className="block text-sm font-semibold text-slate-700 mb-1">
+                Search Preference
+              </label>
+              <select
+                id="search_preference"
+                name="search_preference"
+                value={profile.search_preference}
+                onChange={(e) => setProfile(prev => ({ ...prev, search_preference: e.target.value as any }))}
+                className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none text-slate-800 transition duration-150 text-sm bg-white"
+              >
+                <option value="both">Both (Jobs & Scholarships)</option>
+                <option value="jobs">Jobs Only</option>
+                <option value="scholarships">Scholarships Only</option>
+              </select>
             </div>
           </div>
 

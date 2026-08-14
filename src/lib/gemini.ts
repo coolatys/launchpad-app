@@ -152,29 +152,37 @@ Output format must be strictly valid JSON without any comments:
   return JSON.parse(cleaned) as TailorResult;
 }
 
-export async function extractSearchQueries(profileText: string): Promise<string> {
+export async function extractSearchQueries(profileText: string): Promise<string[]> {
   try {
     const genAI = getGenAI();
     const model = genAI.getGenerativeModel({
       model: getModelName(),
-      generationConfig: { maxOutputTokens: 100 },
+      generationConfig: { maxOutputTokens: 150 },
     });
 
     const prompt = `
-You are an expert career agent. Read the candidate's profile and extract the ONE best industry or job title to use as a Google search query for jobs.
-For example, if they have a B.Sc in Accounting, output "Accounting".
-If they are a software engineer, output "Software Engineering".
-Output ONLY the short query string, nothing else.
+You are an expert career agent. Read the candidate's profile and extract exactly 3 distinct, highly targeted search query variations (job titles or roles) to use for a Google Jobs search.
+For example, if they have a B.Sc in Accounting, output:
+Accountant
+Finance Officer
+Audit Trainee
+
+Output exactly 3 lines, with one short query per line. Do not include bullet points or any other text.
 
 Candidate Profile:
 ${profileText.substring(0, 3000)}
 `;
 
     const result = await model.generateContent(prompt);
-    const text = result.response.text().trim().replace(/['"]/g, '');
-    return text || 'Technology';
+    const text = result.response.text().trim().replace(/['"*-]/g, '');
+    const queries = text.split('\n').map(q => q.trim()).filter(Boolean);
+    
+    if (queries.length > 0) {
+      return queries.slice(0, 3);
+    }
+    return ['Technology', 'Software Engineering', 'IT'];
   } catch (error) {
     console.error('Error extracting search query with Gemini:', error);
-    return 'Technology';
+    return ['Technology', 'Software Engineering', 'IT'];
   }
 }
