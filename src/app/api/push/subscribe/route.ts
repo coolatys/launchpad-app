@@ -56,12 +56,21 @@ export async function POST(request: Request) {
           body: "You'll be alerted when new jobs are found.",
         });
         await webpush.sendNotification(subscription, payload);
-      } catch (pushError) {
+      } catch (pushError: any) {
         console.error('Failed to send confirmation push:', pushError);
-        // We still return success because the subscription was saved, 
-        // but log the error. Or we could fail the request.
-        // Let's fail it so the frontend knows it didn't work.
-        return NextResponse.json({ error: 'Failed to send confirmation push', details: pushError }, { status: 500 });
+        
+        // Rollback DB changes since the subscription is invalid/expired
+        await supabaseAdmin
+          .from('push_subscriptions')
+          .delete()
+          .eq('endpoint', subscription.endpoint);
+          
+        await supabaseAdmin
+          .from('profile')
+          .update({ scheduled_scan_enabled: false })
+          .eq('id', userId);
+
+        return NextResponse.json({ error: `Failed to send confirmation push: ${pushError.message}` }, { status: 500 });
       }
 
       return NextResponse.json({ success: true });

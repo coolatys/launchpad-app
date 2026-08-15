@@ -32,12 +32,16 @@ export const enablePushSubscription = async (userId: string) => {
   }
 
   let subscription = await registration.pushManager.getSubscription();
-  if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidKey),
-    });
+  if (subscription) {
+    // If there's an existing subscription (e.g. from an old session), it might be expired (410 Gone).
+    // Safest approach is to unsubscribe the old one and generate a fresh one.
+    await subscription.unsubscribe();
   }
+
+  subscription = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(vapidKey),
+  });
 
   // 4. Send to our backend
   const response = await fetch('/api/push/subscribe', {
