@@ -12,6 +12,7 @@ export interface Profile {
   about_me?: string;
   location?: string;
   search_preference?: 'jobs' | 'scholarships' | 'both';
+  scheduled_scan_enabled?: boolean;
   onboarding_completed_at?: string;
   created_at?: string;
   updated_at?: string;

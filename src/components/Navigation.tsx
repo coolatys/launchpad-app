@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -15,15 +15,64 @@ import {
   MessageSquarePlus,
   LogOut,
   LogIn,
+  Bell,
 } from 'lucide-react';
 import FeedbackModal from '@/components/FeedbackModal';
 import { useAuth } from '@/components/AuthContext';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function Navigation({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, isAdmin, signOut, hasCompletedProfile } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // 1. Fetch initial unread count
+    const fetchUnreadCount = async () => {
+      try {
+        const res = await fetch(`/api/notifications?userId=${user.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          const unread = data.notifications?.filter((n: any) => !n.read_at).length || 0;
+          setUnreadCount(unread);
+        }
+      } catch (err) {
+        console.error('Failed to fetch notifications:', err);
+      }
+    };
+
+    fetchUnreadCount();
+
+    // 2. Setup Realtime subscription
+    const subscription = supabase
+      .channel('notifications_changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          setUnreadCount((prev) => prev + 1);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          if (payload.new.read_at && !payload.old.read_at) {
+             setUnreadCount((prev) => Math.max(0, prev - 1));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [user]);
 
   const isUnauthenticated = !user || pathname === '/login' || pathname.startsWith('/admin');
   const isPendingOnboarding = user && !hasCompletedProfile;
@@ -105,13 +154,35 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
                   <p className="text-slate-400 text-[10px] truncate">{isAdmin ? 'Admin' : 'Tester'}</p>
                 </div>
               </div>
-              <button
-                onClick={() => signOut()}
-                title="Sign Out"
-                className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+              <div className="flex items-center space-x-1">
+                <Link
+                  href="/opportunities"
+                  title="Notifications"
+                  onClick={async () => {
+                    if (unreadCount > 0) {
+                      setUnreadCount(0);
+                      fetch('/api/notifications', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ markAllRead: true, userId: user.id }),
+                      }).catch(console.error);
+                    }
+                  }}
+                  className="relative p-1.5 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-lg transition"
+                >
+                  <Bell className="w-4 h-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 border-2 border-navy-dark rounded-full animate-pulse" />
+                  )}
+                </Link>
+                <button
+                  onClick={() => signOut()}
+                  title="Sign Out"
+                  className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ) : (
             <Link
@@ -137,6 +208,26 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
             </span>
           </Link>
           <div className="flex items-center space-x-2">
+            <Link
+              href="/opportunities"
+              title="Notifications"
+              onClick={async () => {
+                if (unreadCount > 0) {
+                  setUnreadCount(0);
+                  fetch('/api/notifications', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ markAllRead: true, userId: user.id }),
+                  }).catch(console.error);
+                }
+              }}
+              className="relative p-2 text-slate-600 hover:text-gold rounded-lg transition"
+            >
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 border-2 border-white rounded-full animate-pulse" />
+              )}
+            </Link>
             <button
               onClick={() => setFeedbackOpen(true)}
               className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg text-xs font-semibold flex items-center gap-1 border border-amber-200"

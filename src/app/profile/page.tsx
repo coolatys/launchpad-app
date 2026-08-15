@@ -24,6 +24,7 @@ export default function ProfilePage() {
     scholarship_queries: '',
     location: '',
     search_preference: 'both',
+    scheduled_scan_enabled: false,
   });
 
   const [loading, setLoading] = useState(true);
@@ -65,6 +66,7 @@ export default function ProfilePage() {
           scholarship_queries: Array.isArray(data.profile.scholarship_queries) ? data.profile.scholarship_queries.join('\n') : (data.profile.scholarship_queries || ''),
           location: data.profile.location || '',
           search_preference: data.profile.search_preference || 'both',
+          scheduled_scan_enabled: data.profile.scheduled_scan_enabled || false,
         });
       }
     } catch (err: any) {
@@ -253,6 +255,25 @@ export default function ProfilePage() {
                 <option value="jobs">Jobs Only</option>
                 <option value="scholarships">Scholarships Only</option>
               </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <input
+                type="checkbox"
+                id="scheduled_scan_enabled"
+                name="scheduled_scan_enabled"
+                checked={profile.scheduled_scan_enabled}
+                onChange={(e) => setProfile(prev => ({ ...prev, scheduled_scan_enabled: e.target.checked }))}
+                className="w-5 h-5 text-navy rounded border-slate-300 focus:ring-navy"
+              />
+              <div>
+                <label htmlFor="scheduled_scan_enabled" className="block text-sm font-semibold text-slate-700">
+                  Enable Scheduled Scans
+                </label>
+                <p className="text-xs text-slate-500">Allow the AI to automatically run background scans for new matches.</p>
+              </div>
             </div>
           </div>
 

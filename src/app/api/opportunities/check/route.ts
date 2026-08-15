@@ -83,6 +83,25 @@ export async function POST(request: Request) {
       job_queries: jobQueries,
     };
 
+    // 1.5 Rate Limiting (2 minute cooldown)
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    const { data: recentScan, error: recentScanError } = await supabaseAdmin
+      .from('scan_runs')
+      .select('started_at')
+      .eq('user_id', userId)
+      .gte('started_at', twoMinutesAgo)
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (recentScanError) {
+      console.warn(`Could not check rate limit for ${userId}:`, recentScanError.message);
+    } else if (recentScan) {
+      return NextResponse.json({ 
+        error: 'Too Many Requests: Please wait at least 2 minutes between manual scans.' 
+      }, { status: 429 });
+    }
+
     // 2. Insert audit entry in scan_runs table (throws if table is missing)
     const { data: scanRun, error: scanRunError } = await supabaseAdmin
       .from('scan_runs')
@@ -296,28 +315,40 @@ export async function POST(request: Request) {
       }
     }
 
-    // 7. Trigger Email if there are new matches
-    if (newMatchesCount > 0 && process.env.RESEND_API_KEY) {
-      // Need absolute URL for server-to-server fetch
-      const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-      const emailRes = await fetch(`${origin}/api/notifications/email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          toEmail: profile.email || (profile.contact ? profile.contact.replace('Email:', '').trim() : null),
-          candidateName: profile.full_name || 'Candidate',
-          newMatches: matchedJobsForEmail,
-        })
-      });
-
-      if (emailRes.ok) {
-        // Update notified_at for these matches
-        const postingIds = matchedJobsForEmail.map(m => m.postingId);
-        await supabaseAdmin.from('user_matches')
-          .update({ notified_at: new Date().toISOString() })
-          .eq('user_id', userId)
-          .in('posting_id', postingIds);
+    // 7. Trigger In-App Notification if there are new matches
+    if (newMatchesCount > 0) {
+      const message = `${newMatchesCount} new ${kindToSearch === 'scholarship' ? 'scholarship' : 'job'} matches found based on your profile.`;
+      const { error: notifError } = await supabaseAdmin
+        .from('notifications')
+        .insert([{ user_id: userId, message: message }]);
+        
+      if (notifError) {
+        console.error('Failed to insert notification:', notifError);
       }
+
+      // Email disabled for now based on implementation plan feedback
+      /*
+      if (process.env.RESEND_API_KEY) {
+        const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+        const emailRes = await fetch(`${origin}/api/notifications/email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            toEmail: profile.email || (profile.contact ? profile.contact.replace('Email:', '').trim() : null),
+            candidateName: profile.full_name || 'Candidate',
+            newMatches: matchedJobsForEmail,
+          })
+        });
+
+        if (emailRes.ok) {
+          const postingIds = matchedJobsForEmail.map(m => m.postingId);
+          await supabaseAdmin.from('user_matches')
+            .update({ notified_at: new Date().toISOString() })
+            .eq('user_id', userId)
+            .in('posting_id', postingIds);
+        }
+      }
+      */
     }
 
     // 8. Update scan_runs audit entry to completed

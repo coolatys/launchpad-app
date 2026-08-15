@@ -53,6 +53,7 @@ export default function OpportunitiesPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanCount, setScanCount] = useState(0);
   const [scanFinished, setScanFinished] = useState(false);
+  const [scheduledScanEnabled, setScheduledScanEnabled] = useState(false);
 
   // Auth & Onboarding Redirect Guard
   useEffect(() => {
@@ -61,9 +62,39 @@ export default function OpportunitiesPage() {
         router.push('/login');
       } else if (!hasCompletedProfile) {
         router.push('/onboarding');
+      } else {
+        // Fetch toggle state
+        fetch(`/api/profile?user_id=${user.id}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data?.profile) {
+              setScheduledScanEnabled(data.profile.scheduled_scan_enabled || false);
+            }
+          })
+          .catch(console.error);
       }
     }
   }, [user, authLoading, hasCompletedProfile, router]);
+
+  const handleToggleScheduledScan = async () => {
+    if (!user) return;
+    const nextState = !scheduledScanEnabled;
+    setScheduledScanEnabled(nextState); // optimistic update
+    
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, scheduled_scan_enabled: nextState }),
+      });
+      if (!res.ok) throw new Error('Failed to update scheduled scan');
+      setStatusMsg({ type: 'success', message: nextState ? 'Scheduled scans enabled!' : 'Scheduled scans disabled.' });
+      setTimeout(() => setStatusMsg(null), 3000);
+    } catch (e: any) {
+      setScheduledScanEnabled(!nextState); // revert
+      setStatusMsg({ type: 'error', message: e.message });
+    }
+  };
 
   const fetchOpportunities = async (filter: 'new' | 'shortlisted' | 'dismissed') => {
     if (!user?.id) return;
@@ -295,7 +326,20 @@ export default function OpportunitiesPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-4 shrink-0">
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+            <input
+              type="checkbox"
+              id="dash_scheduled_scan"
+              checked={scheduledScanEnabled}
+              onChange={handleToggleScheduledScan}
+              className="w-4 h-4 text-navy rounded border-slate-300 focus:ring-navy cursor-pointer"
+            />
+            <label htmlFor="dash_scheduled_scan" className="text-sm font-semibold text-slate-700 cursor-pointer">
+              Auto-Scan
+            </label>
+          </div>
+
           <button
             onClick={() => setShowManualForm(!showManualForm)}
             className="px-5 py-2.5 bg-white border border-slate-350 hover:bg-slate-50 text-navy font-bold rounded-xl shadow-sm flex items-center justify-center gap-2 transition duration-150 cursor-pointer shrink-0"

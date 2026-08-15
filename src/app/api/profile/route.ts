@@ -36,7 +36,8 @@ export async function POST(request: Request) {
     const { 
       user_id, contact, name, headline, education, cv_master, 
       interests, experience, job_queries, scholarship_queries,
-      certifications, skills, project, location, search_preference
+      certifications, skills, project, location, search_preference,
+      scheduled_scan_enabled
     } = body;
 
     if (!user_id) {
@@ -60,6 +61,7 @@ export async function POST(request: Request) {
       interests: combinedInterests,
       location,
       search_preference: search_preference || 'both',
+      scheduled_scan_enabled: scheduled_scan_enabled ?? false,
       cv_master,
       updated_at: new Date().toISOString(),
     };

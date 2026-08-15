@@ -1,0 +1,17 @@
+name: Daily Scheduled Scans
+
+on:
+  schedule:
+    # Run at 09:00 UTC and 17:00 UTC (approx. morning and evening for most African/European timezones)
+    - cron: '0 9 * * *'
+    - cron: '0 17 * * *'
+  workflow_dispatch: # allow manual triggers
+
+jobs:
+  trigger_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel Cron Endpoint
+        run: |
+          curl -X GET "https://launchpad-nine-fawn.vercel.app/api/cron/scan" \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
