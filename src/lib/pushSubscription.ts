@@ -61,8 +61,12 @@ export const enablePushSubscription = async (userId: string) => {
 export const disablePushSubscription = async (userId: string) => {
   if (!('serviceWorker' in navigator)) return;
 
-  const registration = await navigator.serviceWorker.ready;
-  const subscription = await registration.pushManager.getSubscription();
+  const registration = await navigator.serviceWorker.getRegistration();
+  let subscription: PushSubscription | null = null;
+  
+  if (registration) {
+    subscription = await registration.pushManager.getSubscription();
+  }
   
   if (subscription) {
     // Send unsubscribe to backend first to remove DB entry
