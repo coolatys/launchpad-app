@@ -2,6 +2,15 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { evaluateOpportunityFit, extractSearchQueries } from '@/lib/gemini';
 import { fetchGoogleJobs } from '@/lib/serpapi';
+import webpush from 'web-push';
+
+if (process.env.NEXT_PUBLIC_VAPID_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    'mailto:hello@example.com',
+    process.env.NEXT_PUBLIC_VAPID_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
 
 const MAX_SERPAPI_CALLS_PER_MONTH = 245;
 
@@ -324,6 +333,42 @@ export async function POST(request: Request) {
         
       if (notifError) {
         console.error('Failed to insert notification:', notifError);
+      }
+
+      // Send Web Push to all user devices
+      if (process.env.NEXT_PUBLIC_VAPID_KEY && process.env.VAPID_PRIVATE_KEY) {
+        const { data: subscriptions } = await supabaseAdmin
+          .from('push_subscriptions')
+          .select('*')
+          .eq('user_id', userId);
+
+        if (subscriptions && subscriptions.length > 0) {
+          const pushPayload = JSON.stringify({
+            title: 'New Matches Found!',
+            body: message,
+          });
+
+          await Promise.all(
+            subscriptions.map(async (sub) => {
+              const pushSubscription = {
+                endpoint: sub.endpoint,
+                keys: { auth: sub.auth, p256dh: sub.p256dh }
+              };
+              try {
+                await webpush.sendNotification(pushSubscription, pushPayload);
+              } catch (error: any) {
+                console.error('Web Push Error:', error);
+                // 410 Gone means subscription expired or revoked
+                if (error.statusCode === 410 || error.statusCode === 404) {
+                  await supabaseAdmin
+                    .from('push_subscriptions')
+                    .delete()
+                    .eq('id', sub.id);
+                }
+              }
+            })
+          );
+        }
       }
 
       // Email disabled for now based on implementation plan feedback

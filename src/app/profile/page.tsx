@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Save, Loader2, CheckCircle2, AlertCircle, Briefcase, GraduationCap } from 'lucide-react';
 import { useAuth } from '@/components/AuthContext';
+import { enablePushSubscription, disablePushSubscription } from '@/lib/pushSubscription';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -265,7 +266,26 @@ export default function ProfilePage() {
                 id="scheduled_scan_enabled"
                 name="scheduled_scan_enabled"
                 checked={profile.scheduled_scan_enabled}
-                onChange={(e) => setProfile(prev => ({ ...prev, scheduled_scan_enabled: e.target.checked }))}
+                onChange={async (e) => {
+                  const checked = e.target.checked;
+                  if (!user) return;
+                  
+                  try {
+                    if (checked) {
+                      await enablePushSubscription(user.id);
+                      setStatus({ type: 'success', message: 'Auto Scan and Notifications enabled!' });
+                    } else {
+                      await disablePushSubscription(user.id);
+                      setStatus({ type: 'success', message: 'Auto Scan disabled.' });
+                    }
+                    setProfile(prev => ({ ...prev, scheduled_scan_enabled: checked }));
+                    setTimeout(() => setStatus(null), 4000);
+                  } catch (err: any) {
+                    // Revert and show error if permission denied
+                    e.target.checked = !checked;
+                    setStatus({ type: 'error', message: `Enable notifications to turn on Auto Scan (${err.message})` });
+                  }
+                }}
                 className="w-5 h-5 text-navy rounded border-slate-300 focus:ring-navy"
               />
               <div>

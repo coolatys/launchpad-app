@@ -21,6 +21,7 @@ import {
 import { useAuth } from '@/components/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Opportunity } from '@/lib/types';
+import { enablePushSubscription, disablePushSubscription } from '@/lib/pushSubscription';
 
 export default function OpportunitiesPage() {
   const router = useRouter();
@@ -79,20 +80,21 @@ export default function OpportunitiesPage() {
   const handleToggleScheduledScan = async () => {
     if (!user) return;
     const nextState = !scheduledScanEnabled;
-    setScheduledScanEnabled(nextState); // optimistic update
     
+    // We do NOT update state optimistically because permission prompts can fail/deny
     try {
-      const res = await fetch('/api/profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, scheduled_scan_enabled: nextState }),
-      });
-      if (!res.ok) throw new Error('Failed to update scheduled scan');
-      setStatusMsg({ type: 'success', message: nextState ? 'Scheduled scans enabled!' : 'Scheduled scans disabled.' });
-      setTimeout(() => setStatusMsg(null), 3000);
+      if (nextState) {
+        await enablePushSubscription(user.id);
+        setStatusMsg({ type: 'success', message: 'Auto Scan and Notifications enabled!' });
+      } else {
+        await disablePushSubscription(user.id);
+        setStatusMsg({ type: 'success', message: 'Auto Scan disabled.' });
+      }
+      setScheduledScanEnabled(nextState);
+      setTimeout(() => setStatusMsg(null), 4000);
     } catch (e: any) {
-      setScheduledScanEnabled(!nextState); // revert
-      setStatusMsg({ type: 'error', message: e.message });
+      // Show inline error if permission denied or failed
+      setStatusMsg({ type: 'error', message: `Enable notifications to turn on Auto Scan (${e.message})` });
     }
   };
 
