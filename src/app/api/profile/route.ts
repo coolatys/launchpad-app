@@ -29,13 +29,29 @@ export async function GET(request: Request) {
   }
 }
 
+// Helper to recursively remove null bytes (\u0000) from all strings in an object
+function stripNullBytes(obj: any): any {
+  if (typeof obj === 'string') {
+    return obj.replace(/\u0000/g, '');
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(stripNullBytes);
+  }
+  if (obj !== null && typeof obj === 'object') {
+    const newObj: any = {};
+    for (const key in obj) {
+      newObj[key] = stripNullBytes(obj[key]);
+    }
+    return newObj;
+  }
+  return obj;
+}
+
 // POST /api/profile
 export async function POST(request: Request) {
   try {
-    const rawText = await request.text();
-    // PostgreSQL does not support null characters (\u0000) in text fields.
-    const cleanText = rawText.replace(/\u0000/g, '');
-    const body = JSON.parse(cleanText);
+    let body = await request.json();
+    body = stripNullBytes(body);
     const { 
       user_id, contact, name, headline, education, cv_master, 
       interests, experience, job_queries, scholarship_queries,
