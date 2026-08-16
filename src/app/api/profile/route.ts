@@ -32,7 +32,10 @@ export async function GET(request: Request) {
 // POST /api/profile
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const rawText = await request.text();
+    // PostgreSQL does not support null characters (\u0000) in text fields.
+    const cleanText = rawText.replace(/\u0000/g, '');
+    const body = JSON.parse(cleanText);
     const { 
       user_id, contact, name, headline, education, cv_master, 
       interests, experience, job_queries, scholarship_queries,
