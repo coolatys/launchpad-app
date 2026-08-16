@@ -42,6 +42,7 @@ export default function OnboardingWizardPage() {
   // Step 2 CV Mode: 'file' or 'text'
   const [cvMode, setCvMode] = useState<'file' | 'text'>('file');
   const [fileName, setFileName] = useState<string | null>(null);
+  const [parsingPdf, setParsingPdf] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -71,11 +72,41 @@ export default function OnboardingWizardPage() {
   };
 
   // Handle CV File Upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setFileName(file.name);
+    
+    // If it's a PDF, we must send it to the backend to parse
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      setParsingPdf(true);
+      setErrorMsg(null);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      try {
+        const res = await fetch('/api/parse-pdf', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to parse PDF');
+        
+        setFormData((prev) => ({ ...prev, cv_master: data.text }));
+      } catch (err: any) {
+        console.error(err);
+        setErrorMsg('Error parsing PDF. Please try a different file or paste text manually.');
+        setFileName(null);
+      } finally {
+        setParsingPdf(false);
+      }
+      return;
+    }
+
+    // For plain text, reader works fine in-browser
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
@@ -337,17 +368,24 @@ export default function OnboardingWizardPage() {
               <div className="border-2 border-dashed border-slate-300 hover:border-navy rounded-2xl p-8 text-center space-y-3 bg-slate-50/50 transition">
                 <Upload className="w-10 h-10 text-slate-400 mx-auto" />
                 <div>
-                  <p className="text-sm font-semibold text-slate-700">Upload CV File (.txt / .doc / plain text)</p>
-                  {fileName && (
-                    <p className="text-xs text-emerald-600 font-bold mt-1 flex items-center justify-center gap-1">
+                  <p className="text-sm font-semibold text-slate-700">Upload CV File (.pdf / .txt / .doc / plain text)</p>
+                  {fileName && !parsingPdf && (
+                    <p className="text-sm text-emerald-600 font-medium flex items-center gap-1 mt-1 justify-center">
                       <CheckCircle2 className="w-4 h-4" /> Selected: {fileName}
+                    </p>
+                  )}
+                  {parsingPdf && (
+                    <p className="text-sm text-amber-600 font-medium flex items-center gap-1 mt-1 animate-pulse justify-center">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Extracting text from PDF...
                     </p>
                   )}
                 </div>
                 <input
+                  id="file_upload"
                   type="file"
-                  accept=".txt,.doc,.docx"
+                  accept=".pdf,.txt,.doc,.docx,text/plain"
                   onChange={handleFileUpload}
+                  disabled={parsingPdf}
                   className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-navy file:text-white hover:file:bg-navy-light cursor-pointer"
                 />
               </div>
