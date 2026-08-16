@@ -168,12 +168,16 @@ export async function POST(request: Request) {
       kindToSearch = Math.random() > 0.5 ? 'job' : 'scholarship';
     }
     
-    let queryTopic = 'Technology';
+    let queryTopic = scanPayload.industry || 'Technology';
     if (scanPayload.job_queries && scanPayload.job_queries.length > 0) {
-      const randomIndex = Math.floor(Math.random() * scanPayload.job_queries.length);
-      queryTopic = scanPayload.job_queries[randomIndex];
-    } else {
-      queryTopic = scanPayload.industry;
+      // Filter out garbage AI conversational responses (e.g., "Please provide the CV...")
+      const validQueries = scanPayload.job_queries.filter((q: string) => 
+        q && q.length < 60 && !q.toLowerCase().includes('please provide')
+      );
+      if (validQueries.length > 0) {
+        const randomIndex = Math.floor(Math.random() * validQueries.length);
+        queryTopic = validQueries[randomIndex];
+      }
     }
     
     const query = `${queryTopic} ${kindToSearch === 'scholarship' ? 'scholarships' : 'jobs'} in ${scanPayload.location}`;
