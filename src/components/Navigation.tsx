@@ -86,7 +86,7 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
     { name: 'Profile', href: '/profile', icon: User },
     { name: 'Opportunities', href: '/opportunities', icon: Compass },
     { name: 'Applications', href: '/applications', icon: Briefcase },
-    ...(isAdmin ? [{ name: 'Tester Feedback', href: '/feedback', icon: MessageSquarePlus }] : []),
+    // ...(isAdmin ? [{ name: 'Tester Feedback', href: '/feedback', icon: MessageSquarePlus }] : []),
   ];
 
   return (
