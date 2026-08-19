@@ -239,14 +239,15 @@ export default function OpportunitiesPage() {
         body: JSON.stringify(payload),
       });
       
+      const data = await res.json().catch(() => ({}));
+      
       if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.error || `Failed with status ${res.status}`);
+        throw new Error(data.error || `Failed with status ${res.status}`);
       }
       
       setStatusMsg({
         type: 'success',
-        message: `Progressive AI web scan initiated! Matches will populate live below as they are found.`,
+        message: data.message || `Progressive AI web scan initiated! Matches will populate live below as they are found.`,
       });
     } catch (err: any) {
       setStatusMsg({ type: 'error', message: err.message });
