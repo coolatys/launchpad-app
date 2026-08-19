@@ -29,6 +29,11 @@ export async function fetchGoogleJobs(query: string): Promise<SerpApiJob[]> {
   const data = await response.json();
   
   if (data.error) {
+    // SerpApi returns this specific error string when a search literally yields 0 results.
+    // It's not an API failure, just an empty result set.
+    if (data.error.includes("Google hasn't returned any results")) {
+      return [];
+    }
     throw new Error(`SerpApi error: ${data.error}`);
   }
 
