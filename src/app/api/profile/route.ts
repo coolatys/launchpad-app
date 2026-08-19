@@ -29,18 +29,31 @@ export async function GET(request: Request) {
   }
 }
 
-// Helper to recursively remove null bytes (\u0000) from all strings in an object
-function stripNullBytes(obj: any): any {
+// Helper to recursively sanitize strings for Postgres
+// Postgres strictly rejects null bytes (\x00) and unpaired surrogate halves in JSON
+function sanitizePostgresString(str: string): string {
+  let cleaned = str.replace(/\0/g, '').replace(/\\u0000/g, '');
+  
+  // Fix lone surrogates (replaces them with \uFFFD)
+  if (typeof cleaned.toWellFormed === 'function') {
+    cleaned = cleaned.toWellFormed();
+  } else {
+    cleaned = cleaned.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '\uFFFD');
+  }
+  return cleaned;
+}
+
+function sanitizePayload(obj: any): any {
   if (typeof obj === 'string') {
-    return obj.replace(/\u0000/g, '');
+    return sanitizePostgresString(obj);
   }
   if (Array.isArray(obj)) {
-    return obj.map(stripNullBytes);
+    return obj.map(sanitizePayload);
   }
   if (obj !== null && typeof obj === 'object') {
     const newObj: any = {};
     for (const key in obj) {
-      newObj[key] = stripNullBytes(obj[key]);
+      newObj[key] = sanitizePayload(obj[key]);
     }
     return newObj;
   }
@@ -51,7 +64,7 @@ function stripNullBytes(obj: any): any {
 export async function POST(request: Request) {
   try {
     let body = await request.json();
-    body = stripNullBytes(body);
+    body = sanitizePayload(body);
     const { 
       user_id, contact, name, headline, education, cv_master, 
       interests, experience, job_queries, scholarship_queries,
