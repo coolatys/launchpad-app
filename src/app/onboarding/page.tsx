@@ -56,7 +56,7 @@ export default function OnboardingWizardPage() {
     cv_master: '',
 
     // Step 3: Interests
-    kindPreference: 'both' as 'job' | 'scholarship' | 'both',
+    kindPreference: 'both' as 'jobs' | 'scholarships' | 'both',
     industry: '',
     location: '',
     job_queries: 'Graduate software engineer\nEntry level developer remote',
@@ -427,8 +427,8 @@ export default function OnboardingWizardPage() {
                   className="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy outline-none"
                 >
                   <option value="both">Both Jobs & Scholarships</option>
-                  <option value="job">Jobs & Internships Only</option>
-                  <option value="scholarship">Scholarships & Fellowships Only</option>
+                  <option value="jobs">Jobs & Internships Only</option>
+                  <option value="scholarships">Scholarships & Fellowships Only</option>
                 </select>
               </div>
 
