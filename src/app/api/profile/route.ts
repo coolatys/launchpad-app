@@ -106,6 +106,15 @@ export async function POST(request: Request) {
 
     if (upsertError) {
       console.error('Supabase profile upsert error:', upsertError.message, upsertError.details);
+      
+      // Handle duplicate contact gracefully for the frontend
+      if (upsertError.message.includes('profile_contact_key')) {
+        return NextResponse.json(
+          { error: 'This contact email/number is already associated with another account. Please use a different one.' },
+          { status: 409 }
+        );
+      }
+
       // Strictly enforce failure. Do NOT fall back. Throw 500 immediately.
       throw new Error(`Database Error: ${upsertError.message}`);
     }
