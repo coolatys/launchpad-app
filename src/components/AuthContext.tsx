@@ -112,9 +112,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     });
     if (error) return { error: error.message };
+    if (data.user?.identities?.length === 0) {
+      return { error: 'This email is already in use.' };
+    }
+
     return {
       error: null,
-      message: data.user?.identities?.length === 0 ? 'User already exists' : 'Registration successful! Check your email for confirmation link.',
+      message: 'Registration successful! Check your email for confirmation link.',
     };
   };
 
