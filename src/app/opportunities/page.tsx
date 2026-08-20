@@ -32,7 +32,7 @@ export default function OpportunitiesPage() {
   const [checking, setChecking] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'new' | 'shortlisted' | 'dismissed'>('new');
   const [expandedOpps, setExpandedOpps] = useState<Set<string>>(new Set());
-  const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; message: React.ReactNode } | null>(null);
 
   // Phase 4 states
   const [tailoringId, setTailoringId] = useState<string | null>(null);
@@ -55,6 +55,23 @@ export default function OpportunitiesPage() {
   const [scanCount, setScanCount] = useState(0);
   const [scanFinished, setScanFinished] = useState(false);
   const [scheduledScanEnabled, setScheduledScanEnabled] = useState(false);
+  const [lastScanAt, setLastScanAt] = useState<string | null>(null);
+  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
+
+  // Cooldown timer effect
+  useEffect(() => {
+    if (!lastScanAt) return;
+    
+    const updateCooldown = () => {
+      const msSince = Date.now() - new Date(lastScanAt).getTime();
+      const remaining = Math.max(0, 120000 - msSince);
+      setCooldownRemaining(Math.floor(remaining / 1000));
+    };
+    
+    updateCooldown();
+    const interval = setInterval(updateCooldown, 1000);
+    return () => clearInterval(interval);
+  }, [lastScanAt]);
 
   // Auth & Onboarding Redirect Guard
   useEffect(() => {
@@ -64,12 +81,15 @@ export default function OpportunitiesPage() {
       } else if (!hasCompletedProfile) {
         router.push('/onboarding');
       } else {
-        // Fetch toggle state
+        // Fetch toggle state & last scan time
         fetch(`/api/profile?user_id=${user.id}`)
           .then(res => res.json())
           .then(data => {
             if (data?.profile) {
               setScheduledScanEnabled(data.profile.scheduled_scan_enabled || false);
+            }
+            if (data?.last_manual_scan_at) {
+              setLastScanAt(data.last_manual_scan_at);
             }
           })
           .catch(console.error);
@@ -245,10 +265,33 @@ export default function OpportunitiesPage() {
         throw new Error(data.error || `Failed with status ${res.status}`);
       }
       
-      setStatusMsg({
-        type: 'success',
-        message: data.message || `Progressive AI web scan initiated! Matches will populate live below as they are found.`,
-      });
+      if (data.newMatchesCount === 0 && !data.message?.includes("up to date")) {
+        setStatusMsg({
+          type: 'success',
+          message: (
+            <span>
+              No new matches found right now — this can happen for specialized or local roles.{' '}
+              {scheduledScanEnabled ? (
+                "Auto Scan is on — we'll notify you as soon as something turns up."
+              ) : (
+                <>
+                  Turn on Auto Scan and we'll keep searching in the background and alert you when something matches.{' '}
+                  <button onClick={handleToggleScheduledScan} className="underline font-bold text-navy hover:text-navy-light transition-colors">
+                    Enable Auto Scan
+                  </button>
+                </>
+              )}
+            </span>
+          ),
+        });
+      } else {
+        setStatusMsg({
+          type: 'success',
+          message: data.message || `Scan completed! ${data.newMatchesCount || 0} new matches found.`,
+        });
+      }
+
+      setLastScanAt(new Date().toISOString());
     } catch (err: any) {
       setStatusMsg({ type: 'error', message: err.message });
       setIsScanning(false);
@@ -362,13 +405,18 @@ export default function OpportunitiesPage() {
 
           <button
             onClick={runAgentCheck}
-            disabled={checking}
-            className="px-5 py-2.5 bg-navy hover:bg-navy-light text-white font-bold rounded-xl shadow-md flex items-center justify-center gap-2 transition duration-150 disabled:opacity-75 cursor-pointer shrink-0"
+            disabled={checking || cooldownRemaining > 0}
+            className="px-5 py-2.5 bg-navy hover:bg-navy-light text-white font-bold rounded-xl shadow-md flex items-center justify-center gap-2 transition duration-150 disabled:opacity-75 disabled:cursor-not-allowed shrink-0 min-w-[140px]"
           >
             {checking ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
                 Scanning & Scoring...
+              </>
+            ) : cooldownRemaining > 0 ? (
+              <>
+                <Sparkles className="w-5 h-5 text-gold opacity-50" />
+                Available in {Math.floor(cooldownRemaining / 60)}:{(cooldownRemaining % 60).toString().padStart(2, '0')}
               </>
             ) : (
               <>

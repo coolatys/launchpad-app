@@ -23,7 +23,18 @@ export async function GET(request: Request) {
       throw new Error(`Failed to fetch profile: ${error.message}`);
     }
 
-    return NextResponse.json({ profile: data });
+    const { data: recentScan } = await supabaseAdmin
+      .from('scan_runs')
+      .select('started_at')
+      .eq('user_id', userId)
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    return NextResponse.json({ 
+      profile: data,
+      last_manual_scan_at: recentScan?.started_at || null
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

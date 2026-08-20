@@ -106,9 +106,13 @@ export async function POST(request: Request) {
     if (recentScanError) {
       console.warn(`Could not check rate limit for ${userId}:`, recentScanError.message);
     } else if (recentScan) {
+      const msSince = Date.now() - new Date(recentScan.started_at).getTime();
+      const minsSince = Math.max(0, Math.floor(msSince / 60000));
       return NextResponse.json({ 
-        error: 'Too Many Requests: Please wait at least 2 minutes between manual scans.' 
-      }, { status: 429 });
+        success: true,
+        newMatchesCount: 0,
+        message: `You're up to date — no new matches since your last scan ${minsSince}m ago.`
+      });
     }
 
     // 2. Insert audit entry in scan_runs table (throws if table is missing)
