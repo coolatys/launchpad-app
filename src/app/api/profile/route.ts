@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import { analyzeProfileIntelligence } from '@/lib/gemini';
 
 // GET /api/profile?user_id=...
 export async function GET(request: Request) {
@@ -128,6 +129,30 @@ export async function POST(request: Request) {
 
       // Strictly enforce failure. Do NOT fall back. Throw 500 immediately.
       throw new Error(`Database Error: ${upsertError.message}`);
+    }
+
+    // 2. Deep Profile Analysis (Only if we have CV text)
+    if (cv_master && cv_master.trim().length > 100) {
+      try {
+        const intelligence = await analyzeProfileIntelligence(`Headline: ${headline || ''}\nCV: ${cv_master}`);
+        if (intelligence) {
+          await supabaseAdmin.from('user_profile_intelligence').upsert({
+            user_id,
+            core_skills: intelligence.core_skills || [],
+            experience_level: intelligence.experience_level || 'junior',
+            primary_domain: intelligence.primary_domain || [],
+            adjacent_roles: intelligence.adjacent_roles || [],
+            direct_titles: intelligence.direct_titles || [],
+            education_signals: intelligence.education_signals || [],
+            summary: intelligence.summary || '',
+            profile_version: 1,
+            source: 'uploaded_cv',
+            analyzed_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+        }
+      } catch (err) {
+        console.error('Failed to update intelligence:', err);
+      }
     }
 
     return NextResponse.json({ profile: data, message: 'Profile saved successfully!' });

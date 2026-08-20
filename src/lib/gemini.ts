@@ -186,3 +186,62 @@ ${profileText.substring(0, 3000)}
     return ['Technology', 'Software Engineering', 'IT'];
   }
 }
+
+export interface ProfileIntelligence {
+  core_skills: string[];
+  experience_level: 'student' | 'graduate' | 'junior' | 'mid' | 'senior';
+  primary_domain: string[];
+  adjacent_roles: string[];
+  direct_titles: string[];
+  education_signals: string[];
+  summary: string;
+}
+
+export async function analyzeProfileIntelligence(profileText: string): Promise<ProfileIntelligence | null> {
+  try {
+    const genAI = getGenAI();
+    const model = genAI.getGenerativeModel({
+      model: getModelName(),
+      generationConfig: {
+        responseMimeType: 'application/json',
+        maxOutputTokens: 800,
+      },
+    });
+
+    const prompt = `
+You are an expert career and recruitment AI. Perform a deep structural analysis of the provided CV/profile.
+Extract the following information and output strictly as a JSON object:
+
+1. core_skills: Array of 5-10 key technical or domain skills.
+2. experience_level: Must be exactly one of: "student", "graduate", "junior", "mid", "senior". Use "student" if currently enrolled and seeking placement.
+3. primary_domain: Array of 1-3 broad industries/domains (e.g. "Healthcare", "Software Engineering", "Finance").
+4. direct_titles: Array of 2-4 literal job titles they are obviously qualified for (e.g. "Frontend Developer").
+5. adjacent_roles: Array of 2-4 transferable or related roles they could do but aren't explicitly titled (e.g. "Technical Writer", "Developer Advocate" for an engineer).
+6. education_signals: Array of key education facts (e.g. "B.Sc Computer Science 2024").
+7. summary: A 2-3 sentence professional summary capturing their unique value proposition.
+
+Candidate Profile:
+${profileText.substring(0, 8000)}
+
+Output strictly valid JSON only:
+{
+  "core_skills": [],
+  "experience_level": "junior",
+  "primary_domain": [],
+  "direct_titles": [],
+  "adjacent_roles": [],
+  "education_signals": [],
+  "summary": ""
+}
+`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    const cleaned = cleanJsonString(text);
+    return JSON.parse(cleaned) as ProfileIntelligence;
+  } catch (error) {
+    console.error('Error in analyzeProfileIntelligence:', error);
+    return null;
+  }
+}
+

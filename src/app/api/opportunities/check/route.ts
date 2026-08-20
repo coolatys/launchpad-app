@@ -83,6 +83,21 @@ export async function POST(request: Request) {
         jobQueries = await extractSearchQueries(profileText);
     }
 
+    // 3.5 Inject Deep Intelligence queries (direct_titles + adjacent_roles)
+    const { data: intelligence } = await supabaseAdmin
+      .from('user_profile_intelligence')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (intelligence) {
+      const mix = [...(intelligence.direct_titles || []), ...(intelligence.adjacent_roles || [])];
+      if (mix.length > 0) {
+        // Merge without duplicates
+        jobQueries = Array.from(new Set([...jobQueries, ...mix])).filter(Boolean);
+      }
+    }
+
     const scanPayload = {
       user_id: userId,
       full_name: profile.full_name || profile.name || 'Candidate',
